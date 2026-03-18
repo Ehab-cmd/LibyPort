@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LibyPort - بوابة طرابلس العالمية</title>
+  <meta name="description" content="LibyPort هي بوابتك الموثوقة للتسوق العالمي والشحن اللوجستي في ليبيا. تسوق من أمازون، شي إن، وعلي إكسبريس واستلم في طرابلس.">
+  <meta name="keywords" content="شحن، ليبيا، طرابلس، تسوق، أمازون، شي إن، لوجستيك، LibyPort">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.liby2port.com/">
+  <meta property="og:title" content="LibyPort - بوابة طرابلس العالمية">
+  <meta property="og:description" content="بوابتك الموثوقة للتسوق العالمي والشحن اللوجستي في ليبيا.">
+  <meta property="og:image" content="https://up6.cc/2025/10/176278012677161.jpg">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://www.liby2port.com/">
+  <meta property="twitter:title" content="LibyPort - بوابة طرابلس العالمية">
+  <meta property="twitter:description" content="بوابتك الموثوقة للتسوق العالمي والشحن اللوجستي في ليبيا.">
+  <meta property="twitter:image" content="https://up6.cc/2025/10/176278012677161.jpg">
+  
+  <!-- Browser Favicon -->
+  <link rel="icon" type="image/jpeg" href="https://up6.cc/2025/10/176278012677161.jpg">
+  <link rel="apple-touch-icon" href="https://up6.cc/2025/10/176278012677161.jpg">
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f59e0b">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    // تكوين Tailwind للتعرف على كلاس dark
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            cairo: ['Cairo', 'sans-serif'],
+          },
+        },
+      },
+    }
+
+    // تطبيق الثيم المحفوظ فوراً قبل رندر الصفحة لمنع الوميض الأبيض
+    const savedTheme = localStorage.getItem('libyport_theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
+
+  <style>
+    /* تحسينات CSS للوضع الليلي والنهاري */
+    html {
+      height: 100%;
+      background-color: #f3f4f6;
+    }
+    html.dark {
+      background-color: #111827;
+    }
+    body {
+      font-family: 'Cairo', sans-serif;
+      min-height: 100%;
+      background-color: #f3f4f6;
+    }
+    .dark body {
+      background-color: #111827;
+    }
+    #root {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+  </style>
+  
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
+    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@6.22.3",
+    "firebase/app": "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "firebase/": "https://esm.sh/firebase@^12.9.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+  <div id="root"></div>
+  <script type="module" src="index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

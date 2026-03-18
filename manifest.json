@@ -1,0 +1,25 @@
+
+{
+  "short_name": "LibyPort",
+  "name": "LibyPort | بوابة طرابلس العالمية",
+  "description": "بوابة طرابلس العالمية",
+  "icons": [
+    {
+      "src": "https://up6.cc/2025/10/176278012677161.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "https://up6.cc/2025/10/176278012677161.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#f59e0b",
+  "background_color": "#f3f4f6"
+}

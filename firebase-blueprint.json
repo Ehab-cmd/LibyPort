@@ -1,0 +1,115 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["SuperAdmin", "Admin", "Store", "Employee"] },
+        "storeIds": { "type": "array", "items": { "type": "integer" } },
+        "isApproved": { "type": "boolean" },
+        "isActive": { "type": "boolean" },
+        "isDeleted": { "type": "boolean" },
+        "phone": { "type": "string" },
+        "city": { "type": "string" },
+        "address": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "Store": {
+      "title": "Store",
+      "description": "A merchant store",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": "string" },
+        "ownerId": { "type": "integer" },
+        "isApproved": { "type": "boolean" }
+      },
+      "required": ["id", "name", "ownerId"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Product in a store",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "stock": { "type": "integer" },
+        "category": { "type": "string" },
+        "storeId": { "type": "integer" },
+        "sku": { "type": "string" },
+        "isDeleted": { "type": "boolean" },
+        "isInstant": { "type": "boolean" }
+      },
+      "required": ["id", "name", "price", "storeId"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "storeId": { "type": "integer" },
+        "customerName": { "type": "string" },
+        "phone1": { "type": "string" },
+        "city": { "type": "string" },
+        "total": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "orderType": { "type": "string" },
+        "purchaseTrackingStatus": { "type": "string" },
+        "deliveryTrackingStatus": { "type": "string" }
+      },
+      "required": ["id", "storeId", "customerName", "total", "date"]
+    },
+    "Treasury": {
+      "title": "Treasury",
+      "description": "Financial treasury or bank account",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["id", "name", "type"]
+    },
+    "DeliveryPrice": {
+      "title": "DeliveryPrice",
+      "description": "Shipping cost for a region",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "cityCode": { "type": "string" },
+        "regionCode": { "type": "string" },
+        "price": { "type": "number" }
+      },
+      "required": ["id", "title", "price"]
+    },
+    "BankAccount": {
+      "title": "BankAccount",
+      "description": "Bank account details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "bankName": { "type": "string" },
+        "accountNumber": { "type": "string" }
+      },
+      "required": ["id", "bankName", "accountNumber"]
+    }
+  },
+  "firestore": {
+    "users": { "schema": "User", "description": "User profiles" },
+    "stores": { "schema": "Store", "description": "Merchant stores" },
+    "products": { "schema": "Product", "description": "Store products" },
+    "orders": { "schema": "Order", "description": "Customer orders" },
+    "treasuries": { "schema": "Treasury", "description": "Financial treasuries" },
+    "deliveryPrices": { "schema": "DeliveryPrice", "description": "Shipping rates" },
+    "bankAccounts": { "schema": "BankAccount", "description": "Bank accounts" }
+  }
+}
