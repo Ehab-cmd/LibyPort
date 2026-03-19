@@ -387,35 +387,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                             if (col === 'orders') setOrders(parsed);
                             if (col === 'financialTransactions') setFinancialTransactions(parsed);
                             if (col === 'companyTransactions') setCompanyTransactions(parsed);
+                            if (col === 'treasuries') setTreasuries(parsed);
                         } catch (e) {}
                     }
                 });
 
-                // 2. تشغيل عمليات التحميل من السيرفر بشكل متوازٍ وذكي
+                // 2. تشغيل عمليات التحميل من السيرفر بنظام الأولويات (Tiered Loading)
                 const fetchAll = async () => {
+                    // الأولوية القصوى: الإعدادات والأخبار وآخر الطلبات
                     await Promise.allSettled([
-                        fetchCollection<User>('users', setUsers),
-                        fetchCollection<Store>('stores', setStores),
-                        fetchCollection<Product>('products', setProducts, 100, 'id'), // Limit products to 100 most recent
                         fetchCollection<News>('news', setNews),
-                        fetchCollection<AppNotification>('notifications', setNotifications, 100, 'date'),
-                        fetchCollection<BankAccount>('bankAccounts', setBankAccounts),
-                        fetchCollection<Treasury>('treasuries', setTreasuries),
-                        fetchCollection<ShippingOrigin>('shippingOrigins', setShippingOrigins),
-                        fetchCollection<ShoppingBrand>('shoppingBrands', setShoppingBrands),
+                        fetchCollection<Order>('orders', setOrders, 100, 'date'), // تحميل آخر 100 طلب فقط للسرعة
+                        fetchCollection<Product>('products', setProducts, 100, 'id'), // تحميل آخر 100 منتج فقط
                     ]);
 
-                    // تشغيل عمليات التحميل المتبقية في الخلفية
-                    Promise.allSettled([
-                        fetchCollection<Order>('orders', setOrders, 100, 'date'), // Limit orders to 100 most recent
-                        fetchCollection<FinancialTransaction>('financialTransactions', setFinancialTransactions, 100, 'date'),
-                        fetchCollection<Client>('clients', setClients),
-                        fetchCollection<ClientTransaction>('clientTransactions', setClientTransactions, 100, 'date'),
-                        fetchCollection<CompanyTransaction>('companyTransactions', setCompanyTransactions, 100, 'date'),
-                        fetchCollection<CurrencyTransaction>('currencyTransactions', setCurrencyTransactions, 100, 'date'),
-                        fetchCollection<WithdrawalRequest>('withdrawalRequests', setWithdrawalRequests, 100, 'date'),
-                        fetchCollection<DeliveryPrice>('deliveryPrices', setDeliveryPrices),
-                    ]);
+                    // الأولوية الثانية: المستخدمين والمتاجر وأسعار التوصيل
+                    setTimeout(() => {
+                        Promise.allSettled([
+                            fetchCollection<User>('users', setUsers),
+                            fetchCollection<Store>('stores', setStores),
+                            fetchCollection<DeliveryPrice>('deliveryPrices', setDeliveryPrices),
+                            fetchCollection<Treasury>('treasuries', setTreasuries),
+                        ]);
+                    }, 500);
+
+                    // الأولوية الثالثة (في الخلفية): المعاملات المالية والبيانات الثقيلة
+                    setTimeout(() => {
+                        Promise.allSettled([
+                            fetchCollection<FinancialTransaction>('financialTransactions', setFinancialTransactions, 200, 'date'),
+                            fetchCollection<Client>('clients', setClients),
+                            fetchCollection<ClientTransaction>('clientTransactions', setClientTransactions, 200, 'date'),
+                            fetchCollection<CompanyTransaction>('companyTransactions', setCompanyTransactions, 200, 'date'),
+                            fetchCollection<CurrencyTransaction>('currencyTransactions', setCurrencyTransactions, 200, 'date'),
+                            fetchCollection<WithdrawalRequest>('withdrawalRequests', setWithdrawalRequests, 50, 'date'),
+                            fetchCollection<AppNotification>('notifications', setNotifications, 50, 'date'),
+                            fetchCollection<BankAccount>('bankAccounts', setBankAccounts),
+                            fetchCollection<ShippingOrigin>('shippingOrigins', setShippingOrigins),
+                            fetchCollection<ShoppingBrand>('shoppingBrands', setShoppingBrands),
+                        ]);
+                    }, 1500);
                 };
 
                 fetchAll();
@@ -490,7 +500,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // Listeners that are always active (Public)
         const unsubscribes: (() => void)[] = [
-            optimizeListener<Product>('products', setProducts, 'number', 100, 'id'),
+            optimizeListener<Product>('products', setProducts, 'number', 500, 'id'),
             optimizeListener<Store>('stores', setStores, 'number'),
             optimizeListener<News>('news', setNews, 'number', 50, 'date'),
             optimizeListener<DeliveryPrice>('deliveryPrices', setDeliveryPrices, 'string'),
@@ -506,7 +516,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Listeners that only run when a user is logged in (Private)
         if (currentUser) {
             unsubscribes.push(
-                optimizeListener<Order>('orders', setOrders, 'string', 100, 'date'),
+                optimizeListener<Order>('orders', setOrders, 'string', 500, 'date'),
                 optimizeListener<Client>('clients', setClients, 'string'),
                 optimizeListener<ClientTransaction>('clientTransactions', setClientTransactions, 'string', 300, 'date'),
                 optimizeListener<CompanyTransaction>('companyTransactions', setCompanyTransactions, 'string', 300, 'date'),
