@@ -124,7 +124,7 @@ const ReasonModal: React.FC<{
                     <label htmlFor="reason-input" className="font-black text-xs text-gray-400 uppercase tracking-widest block mb-1.5 mr-2">السبب أو الملاحظة</label>
                     <textarea id="reason-input" value={reason} onChange={e => setReason(e.target.value)} className="w-full p-2 border rounded-xl bg-gray-50 dark:bg-gray-700 border-gray-100 dark:border-gray-600 text-gray-800 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none text-sm" rows={2} required placeholder="..." />
                 </div>
-                <div className="flex justify-end gap-2 pt-4 border-t dark:border-gray-700 mt-4">
+                <div className="flex justify-center gap-2 pt-4 border-t dark:border-gray-700 mt-4">
                     <button type="button" onClick={onClose} className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg font-bold hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 text-sm">إلغاء</button>
                     <button type="button" onClick={handleConfirm} className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold hover:bg-red-700 shadow-md text-sm">إرسال</button>
                 </div>
@@ -201,7 +201,7 @@ const RefundConfirmationModal: React.FC<{
 
                 <div className="flex justify-center gap-2 mt-6">
                     <button type="button" onClick={onClose} className="flex-1 py-2 bg-gray-100 text-gray-600 rounded-xl font-bold text-xs">تراجع</button>
-                    <button type="button" onClick={() => onConfirm(selectedTreasury, selectedTreasuryId, actualRefund, reason)} className="flex-2 py-2 bg-red-600 text-white rounded-xl font-black shadow-lg text-xs">تأكيد الإرجاع</button>
+                    <button type="button" onClick={() => onConfirm(selectedTreasury, selectedTreasuryId, actualRefund, reason)} className="flex-1 py-2 bg-red-600 text-white rounded-xl font-black shadow-lg text-xs">تأكيد الإرجاع</button>
                 </div>
             </div>
         </div>
@@ -313,7 +313,7 @@ const DepositConfirmationModal: React.FC<{
 
                 <div className="flex gap-2 mt-4">
                     <button type="button" onClick={onClose} className="flex-1 bg-gray-100 py-2.5 rounded-xl font-bold text-[10px]">تراجع</button>
-                    <button type="button" onClick={handleConfirm} className="flex-[2] bg-green-600 text-white py-2.5 rounded-xl font-black text-[10px] shadow-lg hover:bg-green-700 transform active:scale-95 transition-all">تأكيد الاستلام</button>
+                    <button type="button" onClick={handleConfirm} className="flex-1 bg-green-600 text-white py-2.5 rounded-xl font-black text-[10px] shadow-lg hover:bg-green-700 transform active:scale-95 transition-all">تأكيد الاستلام</button>
                 </div>
             </div>
         </div>
@@ -351,7 +351,7 @@ const CollectionConfirmationModal: React.FC<{
 
                 <div className="flex justify-center gap-2">
                     <button type="button" onClick={onClose} className="flex-1 py-2 bg-gray-100 text-gray-600 rounded-xl font-bold text-xs">إلغاء</button>
-                    <button type="button" onClick={() => onConfirm(selectedTreasury, selectedTreasuryId)} className="flex-2 py-2 bg-green-600 text-white rounded-xl font-black shadow-lg text-xs">تحصيل وتسليم</button>
+                    <button type="button" onClick={() => onConfirm(selectedTreasury, selectedTreasuryId)} className="flex-1 py-2 bg-green-600 text-white rounded-xl font-black shadow-lg text-xs">تحصيل وتسليم</button>
                 </div>
             </div>
         </div>

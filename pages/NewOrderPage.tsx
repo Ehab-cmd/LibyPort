@@ -149,9 +149,9 @@ const QuickAddProductModal: React.FC<{
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[500] p-2 md:p-4 overflow-y-auto" dir="rtl">
             <div className="bg-white dark:bg-gray-800 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl w-full max-w-4xl border dark:border-gray-700 animate-scale-in my-2 md:my-8 overflow-hidden">
-                <div className="p-4 md:p-8 max-h-[92vh] overflow-y-auto custom-scrollbar">
-                    <div className="flex justify-between items-center mb-4 md:mb-8 border-b dark:border-gray-700 pb-3 md:pb-0 md:border-none">
-                        <h2 className="text-lg md:text-2xl font-black text-gray-900 dark:text-white">إضافة منتج لمتجر LibyPort</h2>
+                <div className="p-3 md:p-8 max-h-[92vh] overflow-y-auto custom-scrollbar">
+                    <div className="flex justify-between items-center mb-3 md:mb-8 border-b dark:border-gray-700 pb-2 md:pb-0 md:border-none">
+                        <h2 className="text-base md:text-2xl font-black text-gray-900 dark:text-white">إضافة منتج لمتجر LibyPort</h2>
                         <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
                             <svg className="w-6 h-6 md:w-8 md:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
@@ -159,12 +159,12 @@ const QuickAddProductModal: React.FC<{
 
                     <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 md:gap-10">
                         {/* Top Section: Media (Moved to top for mobile) */}
-                        <div className="lg:col-span-4 space-y-4 md:space-y-8 order-1">
-                            <div className="bg-gray-50 dark:bg-gray-900/30 p-3 rounded-2xl border border-gray-100 dark:border-gray-700">
-                                <label className="block text-[9px] md:text-[11px] font-black text-gray-400 uppercase mb-2 text-center">صور المنتج</label>
+                        <div className="lg:col-span-4 space-y-2 md:space-y-8 order-1">
+                            <div className="bg-gray-50 dark:bg-gray-900/30 p-1.5 md:p-3 rounded-2xl border border-gray-100 dark:border-gray-700">
+                                <label className="block text-[8px] md:text-[11px] font-black text-gray-400 uppercase mb-1 md:mb-2 text-center">صور المنتج</label>
                                 <div 
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="aspect-video bg-white dark:bg-gray-900 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl md:rounded-[1.5rem] flex flex-col items-center justify-center cursor-pointer hover:border-yellow-500 transition-all group overflow-hidden relative"
+                                    className="h-20 md:h-auto md:aspect-video bg-white dark:bg-gray-900 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl md:rounded-[1.5rem] flex flex-col items-center justify-center cursor-pointer hover:border-yellow-500 transition-all group overflow-hidden relative"
                                 >
                                     {images.length > 0 ? (
                                         <div className="grid grid-cols-3 gap-1.5 p-2 w-full h-full overflow-y-auto">
@@ -185,10 +185,10 @@ const QuickAddProductModal: React.FC<{
                                         </div>
                                     ) : (
                                         <>
-                                            <div className="w-8 h-8 md:w-16 md:h-16 bg-gray-50 dark:bg-gray-800 rounded-lg md:rounded-2xl shadow-sm flex items-center justify-center text-gray-300 mb-1 md:mb-4 group-hover:scale-110 transition-transform">
-                                                <svg className="w-5 h-5 md:w-8 md:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            <div className="w-6 h-6 md:w-16 md:h-16 bg-gray-50 dark:bg-gray-800 rounded-lg md:rounded-2xl shadow-sm flex items-center justify-center text-gray-300 mb-0.5 md:mb-4 group-hover:scale-110 transition-transform">
+                                                <svg className="w-4 h-4 md:w-8 md:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                             </div>
-                                            <p className="text-yellow-600 font-black text-[10px] md:text-sm">ارفع صور المنتج</p>
+                                            <p className="text-yellow-600 font-black text-[8px] md:text-sm">ارفع صور المنتج</p>
                                         </>
                                     )}
                                     <input 
@@ -215,14 +215,14 @@ const QuickAddProductModal: React.FC<{
                         </div>
 
                         {/* Main Form Section */}
-                        <div className="lg:col-span-8 space-y-4 md:space-y-6 order-2">
+                        <div className="lg:col-span-8 space-y-3 md:space-y-6 order-2">
                             <div>
                                 <label className="block text-[10px] md:text-[11px] font-black text-gray-400 uppercase mb-1 mr-2">اسم المنتج / الوصف</label>
                                 <input 
                                     type="text" 
                                     value={name} 
                                     onChange={e => setName(e.target.value)} 
-                                    className="w-full p-3 md:p-4 bg-gray-50 dark:bg-gray-900 border-none rounded-xl md:rounded-2xl font-bold text-sm md:text-lg focus:ring-2 focus:ring-yellow-500 transition-all" 
+                                    className="w-full p-2.5 md:p-4 bg-gray-50 dark:bg-gray-900 border-none rounded-xl md:rounded-2xl font-bold text-sm md:text-lg focus:ring-2 focus:ring-yellow-500 transition-all" 
                                     placeholder="مثال: طقم نسائي ثلاث قطع..." 
                                 />
                             </div>
@@ -232,7 +232,7 @@ const QuickAddProductModal: React.FC<{
                                 <textarea 
                                     value={description} 
                                     onChange={e => setDescription(e.target.value)} 
-                                    className="w-full p-3 md:p-4 bg-gray-50 dark:bg-gray-900 border-none rounded-xl md:rounded-2xl font-bold text-xs md:text-sm focus:ring-2 focus:ring-yellow-500 transition-all min-h-[60px] md:min-h-[100px]" 
+                                    className="w-full p-2.5 md:p-4 bg-gray-50 dark:bg-gray-900 border-none rounded-xl md:rounded-2xl font-bold text-xs md:text-sm focus:ring-2 focus:ring-yellow-500 transition-all min-h-[50px] md:min-h-[100px]" 
                                     placeholder="اكتب تفاصيل إضافية عن المنتج هنا..." 
                                 />
                             </div>
@@ -396,10 +396,10 @@ const QuickAddProductModal: React.FC<{
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-6 md:mt-12">
+                    <div className="flex flex-row gap-3 md:gap-4 mt-6 md:mt-12">
                         <button 
                             onClick={handleAdd} 
-                            className="flex-[2] bg-yellow-500 text-white py-3.5 md:py-5 rounded-xl md:rounded-3xl font-black text-base md:text-xl shadow-xl shadow-yellow-500/30 hover:bg-yellow-600 transition-all transform active:scale-95"
+                            className="flex-1 bg-yellow-500 text-white py-3.5 md:py-5 rounded-xl md:rounded-3xl font-black text-base md:text-xl shadow-xl shadow-yellow-500/30 hover:bg-yellow-600 transition-all transform active:scale-95"
                         >
                             حفظ ونشر المنتج
                         </button>

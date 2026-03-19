@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import * as ReactRouterDOM from 'react-router-dom';
+import './index.css';
 import App from './App';
 import { AppProvider } from './context/AppContext';
 import { NotificationProvider } from './context/NotificationContext';

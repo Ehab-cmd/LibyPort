@@ -98,6 +98,7 @@ interface AppContextType {
     saleLandingImages: string[];
     isSalePeriodActive: boolean;
     exchangeRate: number;
+    shipmentNews: any[];
     treasuryBalances: any[];
     highValueOrderContact: string;
     deletedCustomers: string[];
@@ -395,7 +396,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     await Promise.allSettled([
                         fetchCollection<User>('users', setUsers),
                         fetchCollection<Store>('stores', setStores),
-                        fetchCollection<Product>('products', setProducts, 500, 'id'), // Limit products to 500 most recent
+                        fetchCollection<Product>('products', setProducts, 100, 'id'), // Limit products to 100 most recent
                         fetchCollection<News>('news', setNews),
                         fetchCollection<AppNotification>('notifications', setNotifications, 100, 'date'),
                         fetchCollection<BankAccount>('bankAccounts', setBankAccounts),
@@ -406,12 +407,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
                     // تشغيل عمليات التحميل المتبقية في الخلفية
                     Promise.allSettled([
-                        fetchCollection<Order>('orders', setOrders, 500, 'date'), // Limit orders to 500 most recent
-                        fetchCollection<FinancialTransaction>('financialTransactions', setFinancialTransactions, 300, 'date'),
+                        fetchCollection<Order>('orders', setOrders, 100, 'date'), // Limit orders to 100 most recent
+                        fetchCollection<FinancialTransaction>('financialTransactions', setFinancialTransactions, 100, 'date'),
                         fetchCollection<Client>('clients', setClients),
-                        fetchCollection<ClientTransaction>('clientTransactions', setClientTransactions, 300, 'date'),
-                        fetchCollection<CompanyTransaction>('companyTransactions', setCompanyTransactions, 300, 'date'),
-                        fetchCollection<CurrencyTransaction>('currencyTransactions', setCurrencyTransactions, 300, 'date'),
+                        fetchCollection<ClientTransaction>('clientTransactions', setClientTransactions, 100, 'date'),
+                        fetchCollection<CompanyTransaction>('companyTransactions', setCompanyTransactions, 100, 'date'),
+                        fetchCollection<CurrencyTransaction>('currencyTransactions', setCurrencyTransactions, 100, 'date'),
                         fetchCollection<WithdrawalRequest>('withdrawalRequests', setWithdrawalRequests, 100, 'date'),
                         fetchCollection<DeliveryPrice>('deliveryPrices', setDeliveryPrices),
                     ]);
@@ -489,7 +490,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // Listeners that are always active (Public)
         const unsubscribes: (() => void)[] = [
-            optimizeListener<Product>('products', setProducts, 'number', 500, 'id'),
+            optimizeListener<Product>('products', setProducts, 'number', 100, 'id'),
             optimizeListener<Store>('stores', setStores, 'number'),
             optimizeListener<News>('news', setNews, 'number', 50, 'date'),
             optimizeListener<DeliveryPrice>('deliveryPrices', setDeliveryPrices, 'string'),
@@ -505,7 +506,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Listeners that only run when a user is logged in (Private)
         if (currentUser) {
             unsubscribes.push(
-                optimizeListener<Order>('orders', setOrders, 'string', 500, 'date'),
+                optimizeListener<Order>('orders', setOrders, 'string', 100, 'date'),
                 optimizeListener<Client>('clients', setClients, 'string'),
                 optimizeListener<ClientTransaction>('clientTransactions', setClientTransactions, 'string', 300, 'date'),
                 optimizeListener<CompanyTransaction>('companyTransactions', setCompanyTransactions, 'string', 300, 'date'),
@@ -1009,11 +1010,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
     };
 
+    const shipmentNews = useMemo(() => {
+        const news: any[] = [];
+        const userStoreIds = currentUser?.storeIds || [];
+        const isAdmin = currentUser && [UserRole.SuperAdmin, UserRole.Admin].includes(currentUser.role);
+        
+        const relevantOrders = isAdmin ? orders : orders.filter(o => userStoreIds.includes(o.storeId));
+        
+        relevantOrders.forEach(order => {
+            if (order.shipmentComments && order.shipmentComments.length > 0) {
+                const store = stores.find(s => s.id === order.storeId);
+                order.shipmentComments.forEach(c => {
+                    news.push({ 
+                        ...c, 
+                        orderId: order.id,
+                        customerName: order.customerName,
+                        storeName: store?.name || 'متجر غير معروف'
+                    });
+                });
+            }
+        });
+        return news.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [orders, stores, currentUser]);
+
     const contextValue = useMemo(() => ({
         currentUser, setCurrentUser, isLoading, users, stores, products, orders, news, notifications,
         chatMessages, financialTransactions, withdrawalRequests, bankAccounts, treasuries, cart, systemSettings,
         shippingOrigins, shoppingBrands, deliveryPrices, landingImages, saleLandingImages, isSalePeriodActive,
-        exchangeRate, treasuryBalances, highValueOrderContact, deletedCustomers, theme, language, t, setLanguage, setTheme, clients, clientTransactions,
+        exchangeRate, shipmentNews, treasuryBalances, highValueOrderContact, deletedCustomers, theme, language, t, setLanguage, setTheme, clients, clientTransactions,
         companyTransactions, companyInfo, currencyTransactions, currencyBalances,
         updateCompanyInfo: async(i: any) => { const newInfo = { ...companyInfo, ...i }; await setDoc(doc(firestore, 'settings', 'company'), newInfo); setCompanyInfo(newInfo); },
         updateSystemSettings: async(s: any) => { const newSettings = { ...systemSettings, ...s }; await setDoc(doc(firestore, 'settings', 'general'), newSettings, { merge: true }); setSystemSettings(newSettings); },
@@ -1471,9 +1495,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const updatedComments = [...(order.shipmentComments || []), newComment];
             await updateDoc(doc(firestore, 'orders', orderId), { shipmentComments: updatedComments });
             
-            // Send notification to the store owner/beneficiary
+            // Send notification to the store owner/beneficiary if added by admin
             if (currentUser.role === UserRole.SuperAdmin || currentUser.role === UserRole.Admin) {
                 await sendNotification(order.beneficiaryId, `تحديث جديد على الشحنة #${orderId}: ${comment}`, 'shipment_update', `/orders/${orderId}`);
+            } else {
+                // Send notification to admins if added by store owner
+                users.filter(u => u.role === UserRole.Admin || u.role === UserRole.SuperAdmin).forEach(adm => {
+                    sendNotification(adm.id, `تعليق جديد من المتجر على الشحنة #${orderId}: ${comment}`, 'shipment_update', `/orders/${orderId}`);
+                });
             }
         },
         requestDeletion: async () => { },

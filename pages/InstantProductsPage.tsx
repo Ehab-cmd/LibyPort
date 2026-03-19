@@ -74,7 +74,6 @@ const InstantProductCard = React.memo<{
                     src={allImages[hoverIndex] || 'https://up6.cc/2025/10/176278012677161.jpg'} 
                     className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105" 
                     alt={product.name} 
-                    loading="lazy"
                 />
                 
                 <button 
@@ -344,10 +343,10 @@ const AddInstantProductModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[150] p-2 md:p-4 overflow-y-auto" dir="rtl">
-            <div className="bg-white dark:bg-gray-800 p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl w-full max-w-4xl animate-fade-in-up my-2 md:my-8 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 p-3 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl w-full max-w-4xl animate-fade-in-up my-2 md:my-8 overflow-hidden">
                 <div className="max-h-[92vh] overflow-y-auto custom-scrollbar pr-1">
-                    <div className="flex justify-between items-center mb-4 md:mb-8 text-gray-800 dark:text-white border-b dark:border-gray-700 pb-3 md:pb-0 md:border-none">
-                        <h2 className="text-lg md:text-2xl font-black">إضافة منتج لمتجر LibyPort</h2>
+                    <div className="flex justify-between items-center mb-3 md:mb-8 text-gray-800 dark:text-white border-b dark:border-gray-700 pb-2 md:pb-0 md:border-none">
+                        <h2 className="text-base md:text-2xl font-black">إضافة منتج لمتجر LibyPort</h2>
                         <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
                             <svg className="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
@@ -355,9 +354,9 @@ const AddInstantProductModal: React.FC<{
 
                     <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 md:gap-8">
                         {/* Top Section: Images */}
-                        <div className="lg:col-span-4 space-y-4 md:space-y-6 order-1">
-                            <div className="bg-gray-50 dark:bg-gray-900/30 p-3 rounded-2xl border border-gray-100 dark:border-gray-700">
-                                <label className="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 text-center">صور المنتج</label>
+                        <div className="lg:col-span-4 space-y-2 md:space-y-6 order-1">
+                            <div className="bg-gray-50 dark:bg-gray-900/30 p-1.5 md:p-3 rounded-2xl border border-gray-100 dark:border-gray-700">
+                                <label className="block text-[8px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-center">صور المنتج</label>
                                 <div className="grid grid-cols-4 lg:grid-cols-2 gap-2">
                                     {images.map((img, idx) => (
                                         <div key={idx} className="aspect-square relative rounded-lg md:rounded-xl overflow-hidden border dark:border-gray-700 group">
@@ -529,8 +528,8 @@ const AddInstantProductModal: React.FC<{
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-6 md:mt-10">
-                        <button onClick={handleSave} disabled={isSaving} className="flex-[2] py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-yellow-500 text-white font-black text-base md:text-xl shadow-xl shadow-yellow-500/30 hover:bg-yellow-600 transition-all transform active:scale-95 disabled:bg-gray-400">
+                    <div className="flex flex-row gap-3 md:gap-4 mt-6 md:mt-10">
+                        <button onClick={handleSave} disabled={isSaving} className="flex-1 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-yellow-500 text-white font-black text-base md:text-xl shadow-xl shadow-yellow-500/30 hover:bg-yellow-600 transition-all transform active:scale-95 disabled:bg-gray-400">
                             {isSaving ? 'جاري الحفظ...' : 'حفظ ونشر المنتج'}
                         </button>
                         <button onClick={onClose} className="flex-1 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-gray-100 dark:bg-gray-700 text-gray-500 font-bold transition-all hover:bg-gray-200 text-sm md:text-base">إلغاء</button>

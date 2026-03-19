@@ -1,12 +1,11 @@
 
-const CACHE_NAME = 'libyport-cache-v6';
+const CACHE_NAME = 'libyport-cache-v7';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
   'https://aistudiocdn.com/react@^19.2.0',
   'https://aistudiocdn.com/react-dom@^19.2.0/client',
-  'https://cdn.tailwindcss.com',
   'https://up6.cc/2025/10/176278012677161.jpg'
 ];
 
@@ -81,8 +80,27 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 self.addEventListener('fetch', event => {
+  // تخطي طلبات Firestore
   if (event.request.url.includes('firestore.googleapis.com')) return;
+  
+  // استراتيجية Stale-While-Revalidate للملفات الثابتة
   event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
+    caches.match(event.request).then(cachedResponse => {
+      const fetchPromise = fetch(event.request).then(networkResponse => {
+        // تحديث الكاش بالنسخة الجديدة إذا كانت الاستجابة صالحة
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      }).catch(() => {
+        // في حالة فشل الشبكة، لا نفعل شيئاً، سيعود الـ cachedResponse
+      });
+
+      // ارجع النسخة المخبأة فوراً إذا وجدت، وإلا انتظر الشبكة
+      return cachedResponse || fetchPromise;
+    })
   );
 });

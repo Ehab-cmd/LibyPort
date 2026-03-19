@@ -694,7 +694,7 @@ const DepositActionModal: React.FC<{
                             </div>
                             <div className="flex gap-2">
                                 <button onClick={() => setShowTrackingInput(false)} className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-500 font-bold rounded-xl text-[10px]">تراجع</button>
-                                <button onClick={handleSaveTracking} disabled={isSaving} className="flex-[2] py-3 bg-yellow-500 text-white font-black rounded-xl shadow-lg text-[10px]">
+                                <button onClick={handleSaveTracking} disabled={isSaving} className="flex-1 py-3 bg-yellow-500 text-white font-black rounded-xl shadow-lg text-[10px]">
                                     {isSaving ? 'جاري الحفظ...' : 'حفظ التتبع'}
                                 </button>
                             </div>

@@ -50,21 +50,28 @@ const WarehouseIcon = () => (
     </svg>
 );
 
-const StatCard = React.memo(({ title, value, icon, color, linkTo, isPulse }: { title: string; value: string | number; icon: React.ReactNode; color: string; linkTo: string; isPulse?: boolean }) => (
-    <ReactRouterDOM.Link to={linkTo} className="group relative bg-white dark:bg-gray-800 p-1.5 sm:p-3 md:p-4 rounded-xl sm:rounded-2xl md:rounded-[1.5rem] shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col md:flex-row items-center justify-center overflow-hidden text-center gap-1 md:gap-4">
-        {isPulse && <div className="absolute inset-0 bg-red-500/5 animate-pulse"></div>}
-        
-        <div className={`relative z-10 p-1 md:p-2.5 rounded-lg md:rounded-xl shadow-lg transition-transform group-hover:scale-110 duration-300 ${color}`}>
-            <div className="scale-[0.65] md:scale-100">
-                {icon}
+const StatCard = React.memo(({ title, value, icon, color, linkTo, isPulse, action }: { title: string; value: string | number; icon: React.ReactNode; color: string; linkTo: string; isPulse?: boolean; action?: React.ReactNode }) => (
+    <div className="relative group h-full">
+        <ReactRouterDOM.Link to={linkTo} className="relative bg-white dark:bg-gray-800 p-1.5 sm:p-3 md:p-4 rounded-xl sm:rounded-2xl md:rounded-[1.5rem] shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col md:flex-row items-center justify-center overflow-hidden text-center gap-1 md:gap-4 w-full h-full">
+            {isPulse && <div className="absolute inset-0 bg-red-500/5 animate-pulse"></div>}
+            
+            <div className={`relative z-10 p-1 md:p-2.5 rounded-lg md:rounded-xl shadow-lg transition-transform group-hover:scale-110 duration-300 ${color}`}>
+                <div className="scale-[0.65] md:scale-100">
+                    {icon}
+                </div>
             </div>
-        </div>
 
-        <div className="relative z-10 min-w-0">
-            <p className="text-[8px] sm:text-[10px] md:text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight md:tracking-wider mb-0.5 leading-tight min-h-[12px] md:min-h-0 flex items-center justify-center">{title}</p>
-            <p className={`text-[10px] sm:text-sm md:text-lg font-black ${isPulse ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'} group-hover:text-yellow-600 transition-colors leading-none truncate`}>{value}</p>
-        </div>
-    </ReactRouterDOM.Link>
+            <div className="relative z-10 min-w-0">
+                <p className="text-[8px] sm:text-[10px] md:text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight md:tracking-wider mb-0.5 leading-tight min-h-[12px] md:min-h-0 flex items-center justify-center">{title}</p>
+                <p className={`text-[10px] sm:text-sm md:text-lg font-black ${isPulse ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'} group-hover:text-yellow-600 transition-colors leading-none truncate`}>{value}</p>
+            </div>
+        </ReactRouterDOM.Link>
+        {action && (
+            <div className="absolute top-1 right-1 z-20">
+                {action}
+            </div>
+        )}
+    </div>
 ));
 
 const DashboardPage: React.FC = () => {
@@ -130,18 +137,8 @@ const DashboardPage: React.FC = () => {
         const recentOrders = [...relevantOrders].sort((a, b) => String(b.id).localeCompare(String(a.id))).slice(0, 3);
         const recentNews = [...news].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
         
-        const shipmentNews = [];
-        relevantOrders.forEach(order => {
-            if (order.shipmentComments && order.shipmentComments.length > 0) {
-                order.shipmentComments.forEach(c => {
-                    shipmentNews.push({ ...c, orderId: order.id });
-                });
-            }
-        });
-        const sortedShipmentNews = shipmentNews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
-        
-        return { totalSales, activeUsersCount, newOrdersCount, processingOrdersCount, purchasedOrdersCount, onHoldOrdersCount, collegiateOrdersCount, awaitingDepositCount, totalProductsCount, pendingShipmentsCount, deliveredShipmentsCount, returnedShipmentsCount, returnedToCompanyCount, internationalShippingCount, arrivedShipmentsCount, localDeliveryCount, recentOrders, recentNews, shipmentNews: sortedShipmentNews };
-    }, [currentUser, orders, products, news, isAdmin, users]);
+        return { totalSales, activeUsersCount, newOrdersCount, processingOrdersCount, purchasedOrdersCount, onHoldOrdersCount, collegiateOrdersCount, awaitingDepositCount, totalProductsCount, pendingShipmentsCount, deliveredShipmentsCount, returnedShipmentsCount, returnedToCompanyCount, internationalShippingCount, arrivedShipmentsCount, localDeliveryCount, recentOrders, recentNews };
+    }, [currentUser, orders, products, news, isAdmin, users, stores]);
 
     const getStatusColor = (status: PurchaseTrackingStatus) => {
         switch(status) {
@@ -327,36 +324,6 @@ const DashboardPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
-                    {/* Shipment News Section - Only shows if there are comments */}
-                    {data.shipmentNews.length > 0 && (
-                        <div className="lg:col-span-2 bg-gradient-to-l from-yellow-500/10 to-transparent border-r-4 border-yellow-500 p-3 md:p-6 rounded-2xl md:rounded-[3rem] shadow-sm animate-fade-in-up">
-                            <div className="flex items-center gap-2 mb-4">
-                                <div className="p-2 bg-yellow-500 text-white rounded-xl shadow-lg shadow-yellow-500/20">
-                                    <NewsIcon />
-                                </div>
-                                <div>
-                                    <h2 className="text-xs md:text-base font-black text-gray-800 dark:text-white">أخبار وتحديثات الشحنات</h2>
-                                    <p className="text-[8px] md:text-xs text-gray-400 font-bold">آخر الملاحظات المرسلة من الإدارة حول شحناتك</p>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {data.shipmentNews.map((news, idx) => (
-                                    <ReactRouterDOM.Link 
-                                        key={`${news.orderId}-${idx}`} 
-                                        to={`/orders/${news.orderId}`}
-                                        className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-yellow-100 dark:border-yellow-900/30 shadow-sm hover:shadow-md transition-all group"
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <span className="text-[8px] font-black text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-0.5 rounded-full">#{news.orderId}</span>
-                                            <span className="text-[8px] font-bold text-gray-400">{new Date(news.date).toLocaleDateString('ar-LY')}</span>
-                                        </div>
-                                        <p className="text-[10px] md:text-xs text-gray-700 dark:text-gray-300 font-bold leading-relaxed line-clamp-2 group-hover:text-yellow-600 transition-colors">{news.comment}</p>
-                                    </ReactRouterDOM.Link>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
                     <div className="bg-white dark:bg-gray-800 rounded-2xl md:rounded-[3rem] shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-fade-in-up">
                         <div className="p-3 md:p-6 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-row justify-between items-center gap-2">
                             <h2 className="text-[10px] md:text-sm font-black text-gray-800 dark:text-white">أحدث الفواتير</h2>

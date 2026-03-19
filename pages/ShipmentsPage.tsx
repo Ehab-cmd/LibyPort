@@ -147,9 +147,9 @@ const CollectionModal: React.FC<{
                     )}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                    <button onClick={onClose} className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-gray-500 font-bold rounded-2xl order-2 sm:order-1">إلغاء</button>
-                    <button onClick={handleConfirm} disabled={isProcessing} className="flex-[2] py-4 bg-green-600 text-white font-black rounded-2xl shadow-xl hover:bg-green-700 transition-all transform active:scale-95 order-1 sm:order-2">
+                <div className="flex flex-row gap-3 pt-2">
+                    <button onClick={onClose} className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-gray-500 font-bold rounded-2xl">إلغاء</button>
+                    <button onClick={handleConfirm} disabled={isProcessing} className="flex-1 py-4 bg-green-600 text-white font-black rounded-2xl shadow-xl hover:bg-green-700 transition-all transform active:scale-95">
                         {isProcessing ? 'جاري المعالجة...' : isOnAccount ? 'تأكيد التسليم (على الحساب)' : 'تأكيد وحفظ التعديلات'}
                     </button>
                 </div>
@@ -294,7 +294,7 @@ const ManageShipmentModal: React.FC<{
                 </div>
                 <div className="flex gap-2 mt-6">
                     <button onClick={onClose} className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-500 font-bold rounded-xl text-xs">إلغاء</button>
-                    <button onClick={handleSave} disabled={isSaving} className="flex-[2] py-3 bg-yellow-500 text-white font-black rounded-xl shadow-lg hover:bg-yellow-600 transition-all active:scale-95 disabled:bg-gray-400 text-xs">
+                    <button onClick={handleSave} disabled={isSaving} className="flex-1 py-3 bg-yellow-500 text-white font-black rounded-xl shadow-lg hover:bg-yellow-600 transition-all active:scale-95 disabled:bg-gray-400 text-xs">
                         {isSaving ? 'جاري الحفظ...' : 'حفظ وإرسال للتوصيل'}
                     </button>
                 </div>

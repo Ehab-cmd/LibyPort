@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import * as ReactRouterDOM from 'react-router-dom';
-import { UserRole, AppNotification } from '../../types';
+import { UserRole, AppNotification, PurchaseTrackingStatus } from '../../types';
 
 // --- Minimalist Professional Icons ---
 const ShoppingBagIcon = () => (
@@ -37,6 +37,8 @@ const MegaphoneIcon = () => (
 
 const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
 const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
+const NewsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h9M7 16h6M7 12h6M7 8h6" /></svg>;
+const XIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -70,17 +72,21 @@ const HeaderAvatar: React.FC<{ name: string; src?: string | null; className?: st
 };
 
 const Header: React.FC<HeaderProps> = React.memo(({ onMenuClick, onCartClick }) => {
-    const { currentUser, logout, notifications, markNotificationsAsRead, markNotificationAsRead, cart, theme, setTheme, language, setLanguage, t } = useAppContext();
+    const { currentUser, logout, notifications, markNotificationsAsRead, markNotificationAsRead, cart, theme, setTheme, language, setLanguage, t, shipmentNews, orders, news } = useAppContext();
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [isShipmentNewsOpen, setIsShipmentNewsOpen] = useState(false);
+    const [isShipmentNewsModalOpen, setIsShipmentNewsModalOpen] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
     const notifMenuRef = useRef<HTMLDivElement>(null);
+    const shipmentNewsRef = useRef<HTMLDivElement>(null);
     const navigate = ReactRouterDOM.useNavigate();
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) setIsUserMenuOpen(false);
             if (notifMenuRef.current && !notifMenuRef.current.contains(event.target as Node)) setIsNotificationsOpen(false);
+            if (shipmentNewsRef.current && !shipmentNewsRef.current.contains(event.target as Node)) setIsShipmentNewsOpen(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -94,6 +100,23 @@ const Header: React.FC<HeaderProps> = React.memo(({ onMenuClick, onCartClick }) 
     const unreadCount = useMemo(() => userNotifications.filter(n => !n.isRead).length, [userNotifications]);
     const cartItemCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
 
+    const shipmentNewsCount = useMemo(() => {
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const recentShipmentNewsCount = shipmentNews.filter(n => new Date(n.date) > oneDayAgo).length;
+        
+        const unseenGeneralNewsCount = news.filter(n => !n.seenBy?.includes(currentUser?.id || 0)).length;
+
+        const userStoreIds = currentUser?.storeIds || [];
+        const isAdmin = currentUser && [UserRole.SuperAdmin, UserRole.Admin].includes(currentUser.role);
+        const pendingOrdersCount = orders.filter(o => {
+            const isPending = (o.purchaseTrackingStatus || PurchaseTrackingStatus.Pending) === PurchaseTrackingStatus.Pending;
+            const isRelevant = isAdmin || userStoreIds.includes(o.storeId);
+            return isPending && isRelevant && !o.isDeleted;
+        }).length;
+
+        return recentShipmentNewsCount + unseenGeneralNewsCount + pendingOrdersCount;
+    }, [shipmentNews, news, orders, currentUser]);
+
     const handleNotificationClick = async (notif: AppNotification) => {
         if (!notif.isRead) await markNotificationAsRead(notif.id);
         setIsNotificationsOpen(false);
@@ -101,6 +124,7 @@ const Header: React.FC<HeaderProps> = React.memo(({ onMenuClick, onCartClick }) 
     };
 
     return (
+        <>
         <header className="sticky top-0 z-50 py-1 md:py-2 no-print">
             <div className="container mx-auto px-2 md:px-4">
                 <div className="max-w-5xl mx-auto bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/50 dark:border-gray-800/50 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.08)] flex items-center justify-between px-3 md:px-5 py-1.5 md:py-2">
@@ -151,10 +175,10 @@ const Header: React.FC<HeaderProps> = React.memo(({ onMenuClick, onCartClick }) 
                                     </button>
                                 </div>
                                 
-                                {/* Notification Toggle */}
+                                 {/* Notification Toggle */}
                                 <div className="relative" ref={notifMenuRef}>
                                     <button 
-                                        onClick={() => { setIsNotificationsOpen(!isNotificationsOpen); setIsUserMenuOpen(false); }} 
+                                        onClick={() => { setIsNotificationsOpen(!isNotificationsOpen); setIsUserMenuOpen(false); setIsShipmentNewsOpen(false); }} 
                                         className={`p-2 md:p-2.5 rounded-full transition-all relative ${isNotificationsOpen ? 'bg-gray-100 dark:bg-gray-800 text-yellow-600' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
                                     >
                                         <BellIcon />
@@ -168,9 +192,9 @@ const Header: React.FC<HeaderProps> = React.memo(({ onMenuClick, onCartClick }) 
 
                                     {/* Notifications Dropdown (Floating style) */}
                                     {isNotificationsOpen && (
-                                        <div className={`fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:top-full ${language === 'ar' ? 'sm:left-0' : 'sm:right-0'} sm:mt-4 sm:w-80 bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl overflow-hidden z-[100] border border-gray-100 dark:border-gray-700 animate-fade-in-up`}>
-                                            <div className="p-5 flex justify-between items-center border-b dark:border-gray-700">
-                                                <span className="font-black text-sm dark:text-white">الإشعارات</span>
+                                        <div className={`absolute top-full ${language === 'ar' ? 'left-0' : 'right-0'} mt-3 w-[280px] sm:w-80 bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl overflow-hidden z-[100] border border-gray-100 dark:border-gray-700 animate-fade-in-up`}>
+                                            <div className="p-4 flex justify-between items-center border-b dark:border-gray-700">
+                                                <span className="font-black text-xs dark:text-white">الإشعارات</span>
                                                 <button 
                                                     onClick={(e) => {
                                                         e.preventDefault();
@@ -187,8 +211,8 @@ const Header: React.FC<HeaderProps> = React.memo(({ onMenuClick, onCartClick }) 
                                                         <div key={n.id} onClick={() => handleNotificationClick(n)} className={`p-4 flex gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${!n.isRead ? 'bg-yellow-50/50 dark:bg-yellow-900/10' : ''}`}>
                                                             <div className="p-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm"><MegaphoneIcon /></div>
                                                             <div className="min-w-0">
-                                                                <p className="text-xs font-bold text-gray-800 dark:text-gray-200 leading-tight mb-1">{n.message}</p>
-                                                                <p className="text-[9px] text-gray-400">{new Date(n.date).toLocaleDateString('ar-LY')}</p>
+                                                                 <p className="text-xs font-bold text-gray-800 dark:text-gray-200 leading-tight mb-1">{n.message}</p>
+                                                                 <p className="text-[9px] text-gray-400">{new Date(n.date).toLocaleDateString('ar-LY')}</p>
                                                             </div>
                                                         </div>
                                                     ))
@@ -200,10 +224,88 @@ const Header: React.FC<HeaderProps> = React.memo(({ onMenuClick, onCartClick }) 
                                     )}
                                 </div>
 
+                                {/* Shipment News & Orders Toggle */}
+                                <div className="relative" ref={shipmentNewsRef}>
+                                    <button 
+                                        onClick={() => { setIsShipmentNewsOpen(!isShipmentNewsOpen); setIsUserMenuOpen(false); setIsNotificationsOpen(false); }} 
+                                        className={`p-2 md:p-2.5 rounded-full transition-all relative ${isShipmentNewsOpen ? 'bg-gray-100 dark:bg-gray-800 text-orange-600' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                    >
+                                        <NewsIcon />
+                                        {shipmentNewsCount > 0 && (
+                                            <span className="absolute top-1 md:top-1.5 right-1 md:right-1.5 flex h-3 w-3 md:h-3.5 md:w-3.5">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-3 w-3 md:h-3.5 md:w-3.5 bg-orange-500 border-2 border-white dark:border-gray-900 flex items-center justify-center">
+                                                    <span className="text-[6px] text-white font-black">{shipmentNewsCount}</span>
+                                                </span>
+                                            </span>
+                                        )}
+                                    </button>
+
+                                    {/* Shipment News Dropdown */}
+                                    {isShipmentNewsOpen && (
+                                        <div className={`absolute top-full ${language === 'ar' ? 'left-0' : 'right-0'} mt-3 w-[280px] sm:w-80 bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl overflow-hidden z-[100] border border-gray-100 dark:border-gray-700 animate-fade-in-up`}>
+                                            <div className="p-4 flex justify-between items-center border-b dark:border-gray-700 bg-orange-50/30 dark:bg-orange-900/10">
+                                                <span className="font-black text-xs dark:text-white">أخبار الشحنات والطلبيات</span>
+                                                <span className="text-[10px] font-black text-orange-600 bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 rounded-full">{shipmentNewsCount}</span>
+                                            </div>
+                                            <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                                                {shipmentNews.length > 0 || news.some(n => !n.seenBy?.includes(currentUser?.id || 0)) || orders.some(o => (o.purchaseTrackingStatus || PurchaseTrackingStatus.Pending) === PurchaseTrackingStatus.Pending) ? (
+                                                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                                                        {/* General News Section */}
+                                                        {news.filter(n => !n.seenBy?.includes(currentUser?.id || 0)).slice(0, 2).map(n => (
+                                                            <div key={`general-${n.id}`} onClick={() => { navigate('/news'); setIsShipmentNewsOpen(false); }} className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors bg-yellow-50/20 dark:bg-yellow-900/5">
+                                                                <div className="flex gap-3">
+                                                                    <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 rounded-xl"><MegaphoneIcon /></div>
+                                                                    <div>
+                                                                        <p className="text-xs font-black text-gray-800 dark:text-gray-200">خبر جديد: {n.title}</p>
+                                                                        <p className="text-[10px] text-gray-500 line-clamp-1">{n.content}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        {/* Pending Orders Section */}
+                                                        {orders.filter(o => (o.purchaseTrackingStatus || PurchaseTrackingStatus.Pending) === PurchaseTrackingStatus.Pending && !o.isDeleted).slice(0, 3).map(order => (
+                                                            <div key={order.id} onClick={() => { navigate(`/orders/${order.id}`); setIsShipmentNewsOpen(false); }} className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                                <div className="flex gap-3">
+                                                                    <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl"><ShoppingBagIcon /></div>
+                                                                    <div>
+                                                                        <p className="text-xs font-black text-gray-800 dark:text-gray-200">طلبية جديدة #{order.id}</p>
+                                                                        <p className="text-[10px] text-gray-500 font-bold">{order.customerName}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        {/* Shipment News Section */}
+                                                        {shipmentNews.slice(0, 5).map((news, idx) => (
+                                                            <div key={`${news.orderId}-${idx}`} onClick={() => { navigate(`/orders/${news.orderId}`); setIsShipmentNewsOpen(false); }} className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                                <div className="flex gap-3">
+                                                                    <div className="p-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 rounded-xl"><NewsIcon /></div>
+                                                                    <div className="min-w-0">
+                                                                        <p className="text-[10px] font-black text-gray-800 dark:text-gray-200 leading-tight mb-1">{news.comment}</p>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-[8px] font-bold text-orange-600 bg-orange-50 dark:bg-orange-900/20 px-1.5 py-0.5 rounded">#{news.orderId}</span>
+                                                                            <span className="text-[8px] text-gray-400">{new Date(news.date).toLocaleDateString('ar-LY')}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="p-10 text-center text-gray-400 text-xs font-bold">لا توجد تحديثات حالياً</div>
+                                                )}
+                                            </div>
+                                            <div className="p-3 bg-gray-50 dark:bg-gray-900/30 text-center">
+                                                <button onClick={() => { setIsShipmentNewsModalOpen(true); setIsShipmentNewsOpen(false); }} className="text-[10px] font-black text-orange-600 hover:underline">عرض جميع الشحنات</button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
                                 {/* User Menu Profile Button */}
                                 <div className="relative mr-1 border-r border-gray-100 dark:border-gray-800 pr-1 md:pr-2" ref={userMenuRef}>
                                     <button 
-                                        onClick={() => { setIsUserMenuOpen(!isUserMenuOpen); setIsNotificationsOpen(false); }} 
+                                        onClick={() => { setIsUserMenuOpen(!isUserMenuOpen); setIsNotificationsOpen(false); setIsShipmentNewsOpen(false); }} 
                                         className="flex items-center gap-2 pl-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all p-0.5"
                                     >
                                         <div className="hidden sm:block text-right">
@@ -215,7 +317,7 @@ const Header: React.FC<HeaderProps> = React.memo(({ onMenuClick, onCartClick }) 
 
                                     {/* User Dropdown */}
                                     {isUserMenuOpen && (
-                                        <div className={`absolute ${language === 'ar' ? 'left-0' : 'right-0'} top-full mt-2 w-40 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden z-[100] border border-gray-100 dark:border-gray-700 animate-fade-in-up`}>
+                                        <div className={`absolute ${language === 'ar' ? 'left-0' : 'right-0'} top-full mt-3 w-40 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden z-[100] border border-gray-100 dark:border-gray-700 animate-fade-in-up`}>
                                             <div className="p-1.5 space-y-0.5">
                                                 <ReactRouterDOM.Link 
                                                     to="/settings" 
@@ -240,6 +342,77 @@ const Header: React.FC<HeaderProps> = React.memo(({ onMenuClick, onCartClick }) 
                 </div>
             </div>
         </header>
+
+        {/* Shipment News Modal */}
+        {isShipmentNewsModalOpen && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fade-in">
+                <div className="bg-white dark:bg-gray-800 w-full max-w-xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
+                    <div className="p-4 md:p-6 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600">
+                                <NewsIcon />
+                            </div>
+                            <div>
+                                <h3 className="text-sm md:text-lg font-black text-gray-900 dark:text-white">أخبار وتحديثات الشحنات</h3>
+                                <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-bold">تحديثات فورية لحالة الشحنات والطلبيات</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setIsShipmentNewsModalOpen(false)}
+                            className="p-1.5 md:p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-500"
+                        >
+                            <XIcon />
+                        </button>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 md:space-y-4 custom-scrollbar">
+                        {shipmentNews.length > 0 ? (
+                            shipmentNews.map((newsItem, idx) => (
+                                <div key={`${newsItem.orderId}-${idx}`} className="bg-gray-50 dark:bg-gray-900/40 p-3 md:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-orange-200 dark:hover:border-orange-900/30 transition-all group">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] md:text-[10px] font-black text-orange-600 uppercase tracking-wider mb-0.5">#{newsItem.orderId}</span>
+                                            <h4 className="font-black text-gray-900 dark:text-white text-xs md:text-sm">{newsItem.customerName}</h4>
+                                        </div>
+                                        <span className="text-[9px] md:text-[10px] text-gray-400 font-bold">{new Date(newsItem.date).toLocaleDateString('ar-LY')}</span>
+                                    </div>
+                                    <p className="text-[11px] md:text-xs text-gray-600 dark:text-gray-300 font-bold leading-relaxed bg-white dark:bg-gray-800 p-2.5 md:p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                                        {newsItem.comment}
+                                    </p>
+                                    <div className="mt-2 flex justify-between items-center">
+                                        <span className="text-[9px] md:text-[10px] text-gray-400 font-black">{newsItem.storeName}</span>
+                                        <ReactRouterDOM.Link 
+                                            to={`/orders/${newsItem.orderId}`}
+                                            onClick={() => setIsShipmentNewsModalOpen(false)}
+                                            className="text-[9px] md:text-[10px] font-black text-orange-600 hover:underline flex items-center gap-1"
+                                        >
+                                            تفاصيل الطلبية <span>←</span>
+                                        </ReactRouterDOM.Link>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-16 md:py-20 text-center">
+                                <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                                    <NewsIcon />
+                                </div>
+                                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-bold">لا توجد تحديثات حالياً</p>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="p-4 border-t dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-center">
+                        <button 
+                            onClick={() => setIsShipmentNewsModalOpen(false)}
+                            className="w-full md:w-auto px-8 py-3 md:py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-black text-xs hover:scale-105 transition-transform shadow-lg"
+                        >
+                            إغلاق
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+    </>
     );
 });
 
