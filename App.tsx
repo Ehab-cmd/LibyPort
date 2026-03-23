@@ -92,27 +92,6 @@ const LoadingSpinner: React.FC = () => (
                 <div className="shine-overlay"></div>
             </div>
             <p className="text-[11px] uppercase font-black tracking-[0.4em] text-gray-400 mt-3 dark:text-gray-500">بوابة طرابلس العالمية</p>
-            <div className="flex justify-center">
-                <div className="w-[240px] h-[1px] bg-slate-100 dark:bg-slate-800 rounded-full relative mt-12 overflow-visible">
-                    <div className="absolute -top-4 w-full h-8 flex justify-center items-center">
-                        <div className="truck-anim text-amber-500">
-                            <svg viewBox="0 0 64 64" width="32" height="32" fill="currentColor">
-                                <path d="M2,18h40v24H2V18z M44,26h10l8,8v8h-18V26z M12,48c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4S14.2,48,12,48z M52,48c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4S54.2,48,52,48z"/>
-                            </svg>
-                        </div>
-                        <div className="plane-anim text-amber-500">
-                            <svg viewBox="0 0 64 64" width="32" height="32" fill="currentColor">
-                                <path d="M62,32c0,0-10-4-20-4s-10,0-10,0L18,12h-6l8,16H4c-2,0-4,2-4,4s2,4,4,4h16l-8,16h6l14-16c0,0,0,0,10,0s20-4,20-4V32z"/>
-                            </svg>
-                        </div>
-                        <div className="ship-anim text-amber-500">
-                            <svg viewBox="0 0 64 64" width="36" height="36" fill="currentColor">
-                                <path d="M10,24h44l8,12v12H2V36L10,24z M16,16h8v8h-8V16z M28,16h8v8h-8V16z M40,16h8v8h-8V16z M22,8h20v8H22V8z"/>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 );
