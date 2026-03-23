@@ -11,7 +11,8 @@ import {
 import { INITIAL_SHIPPING_ORIGINS, SHOPPING_BRANDS } from '../constants';
 import { 
     collection, getDocs, doc, updateDoc, addDoc, deleteDoc, 
-    query, where, onSnapshot, setDoc, getDoc, writeBatch, orderBy, limit, increment, deleteField
+    query, where, onSnapshot, setDoc, getDoc, writeBatch, orderBy, limit, increment, deleteField,
+    documentId
 } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
 import { seedDatabaseIfNeeded, handleFirestoreError, OperationType, testConnection } from '../firebaseService';
@@ -223,6 +224,7 @@ const LARGE_COLLECTIONS = ['products', 'orders', 'financialTransactions', 'compa
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDataLoaded, setIsDataLoaded] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const listenersInitialized = useRef(false);
     const [users, setUsers] = useState<User[]>([]);
@@ -289,9 +291,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     useEffect(() => {
         const initApp = async () => {
-            // فتح النظام فوراً للمستخدم لضمان تجربة "السرعة القصوى"
-            setIsLoading(false);
-
             try {
                 // استرجاع جلسة المستخدم بسرعة من التخزين المحلي
                 const storedUser = localStorage.getItem('libyport_user');
@@ -327,30 +326,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             idType: 'string' | 'number' = 'string',
             orderByField: string = 'id'
         ) => {
-            // جلب كافة البيانات دون حدود (No Limits) لضمان ظهور كل المعلومات
-            const q = query(collection(firestore, colName), orderBy(orderByField, 'desc'));
+            // نستخدم الاستعلام البسيط لتجنب الحاجة لفهارس (Indexes)
+            const q = query(collection(firestore, colName));
 
-            // onSnapshot سيعيد البيانات من التخزين المحلي فوراً (Instant UI) ثم يتزامن مع السحاب
             return onSnapshot(q, { includeMetadataChanges: false }, (snapshot) => {
-                const data = snapshot.docs.map(doc => ({ 
-                    ...(doc.data() as any), 
-                    id: idType === 'number' ? Number(doc.id) : doc.id 
-                } as unknown as T));
+                const data = snapshot.docs.map(doc => {
+                    const docData = doc.data();
+                    return { 
+                        ...docData, 
+                        id: idType === 'number' ? Number(doc.id) : doc.id 
+                    } as unknown as T;
+                });
                 
-                setter(data);
+                // الترتيب في الذاكرة لضمان السرعة وتجنب أخطاء الفهارس
+                const sortedData = [...data].sort((a, b) => {
+                    const valA = a[orderByField as keyof T];
+                    const valB = b[orderByField as keyof T];
+                    if (typeof valA === 'number' && typeof valB === 'number') return valB - valA;
+                    if (typeof valA === 'string' && typeof valB === 'string') return valB.localeCompare(valA);
+                    return 0;
+                });
+
+                setter(sortedData);
             }, (error) => {
                 // تجاهل أخطاء التصاريح البسيطة أثناء تسجيل الخروج
                 if (error.code !== 'permission-denied') {
-                    handleFirestoreError(error, OperationType.LIST, colName);
+                    console.warn(`Listener error for ${colName}:`, error.message);
                 }
             });
         };
 
         // 1. البيانات الأساسية والحيوية (تحميل فوري وشامل)
+        let loadedCollections = 0;
+        const totalCriticalCollections = 3; // news, products, stores
+
+        const checkAllLoaded = () => {
+            loadedCollections++;
+            if (loadedCollections >= totalCriticalCollections) {
+                setIsLoading(false);
+                setIsDataLoaded(true);
+            }
+        };
+
         const unsubscribes: (() => void)[] = [
-            setupCloudListener<News>('news', setNews, 'number', 'date'),
-            setupCloudListener<Product>('products', setProducts, 'number', 'id'),
-            setupCloudListener<Store>('stores', setStores, 'number'),
+            onSnapshot(collection(firestore, 'news'), (snap) => {
+                const data = snap.docs.map(d => ({ ...d.data(), id: d.id } as any));
+                setNews(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+                if (!isDataLoaded) checkAllLoaded();
+            }),
+            onSnapshot(collection(firestore, 'products'), (snap) => {
+                const data = snap.docs.map(d => ({ ...d.data(), id: d.id } as any));
+                setProducts(data.sort((a, b) => Number(b.id) - Number(a.id)));
+                if (!isDataLoaded) checkAllLoaded();
+            }),
+            onSnapshot(collection(firestore, 'stores'), (snap) => {
+                const data = snap.docs.map(d => ({ ...d.data(), id: Number(d.id) } as any));
+                setStores(data.sort((a, b) => a.id - b.id));
+                if (!isDataLoaded) checkAllLoaded();
+            }),
             setupCloudListener<DeliveryPrice>('deliveryPrices', setDeliveryPrices, 'string'),
             setupCloudListener<ShippingOrigin>('shippingOrigins', setShippingOrigins, 'string'),
             setupCloudListener<ShoppingBrand>('shoppingBrands', setShoppingBrands, 'string'),

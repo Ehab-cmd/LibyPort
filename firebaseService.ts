@@ -211,9 +211,8 @@ export const seedDatabaseIfNeeded = async () => {
             ]}
         ];
 
-        for (const col of collectionsToSeed) {
-            await seedCollectionIfNeeded(col.name, col.data);
-        }
+        // تشغيل كافة عمليات الفحص بالتوازي لسرعة البرق
+        await Promise.all(collectionsToSeed.map(col => seedCollectionIfNeeded(col.name, col.data)));
         
         localStorage.setItem('lp_db_seeded', now.toString());
     } catch (error: any) {

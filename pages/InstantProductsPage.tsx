@@ -649,6 +649,14 @@ const InstantProductsPage: React.FC = () => {
         return { total: storeProducts.length, byCategory: res };
     }, [products]);
 
+    const [isLoading, setIsLoading] = useState(products.length === 0);
+
+    useEffect(() => {
+        if (products.length > 0) {
+            setIsLoading(false);
+        }
+    }, [products.length]);
+
     const filteredInstantProducts = useMemo(() => {
         return products.filter(p => {
             const isStoreMatch = p.storeId === 1 || p.isInstant;
@@ -747,39 +755,49 @@ const InstantProductsPage: React.FC = () => {
             </div>
 
 
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1 md:gap-6">
-                {filteredInstantProducts.slice(0, visibleCount).map((product, index) => {
-                    const brand = shoppingBrands.find(b => b.id === product.brandId);
-                    return (
-                        <InstantProductCard 
-                            key={`${product.id}-${index}`} 
-                            product={product} 
-                            onQuickView={setQuickViewProduct} 
-                            onFullView={handleFullView}
-                            onAddToCart={(p) => handleAddToCart(p, p.sizes?.[0]?.size || p.size || 'Standard')}
-                            brandName={brand?.name}
-                        />
-                    );
-                })}
-            </div>
-
-            <div ref={loaderRef} className="h-20 flex items-center justify-center mt-10">
-                {visibleCount < filteredInstantProducts.length ? (
-                    <div className="flex flex-col items-center gap-2 opacity-40">
-                         <div className="w-8 h-8 border-4 border-yellow-500 border-t-transparent animate-spin rounded-full"></div>
-                    </div>
-                ) : (
-                    filteredInstantProducts.length > 0 && (
-                        <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">لقد وصلت إلى نهاية القائمة</p>
-                    )
-                )}
-            </div>
-
-            {filteredInstantProducts.length === 0 && (
-                <div className="py-40 text-center flex flex-col items-center bg-white dark:bg-gray-800 rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-700 mt-6">
-                    <div className="w-24 h-24 bg-gray-50 dark:bg-gray-900 rounded-full flex items-center justify-center text-gray-300 mb-4 shadow-inner"><SearchIcon /></div>
-                    <h3 className="text-2xl font-black text-gray-800 dark:text-white uppercase tracking-widest">لا توجد منتجات مطابقة</h3>
+            {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-40 animate-pulse">
+                    <div className="w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mb-6 shadow-xl shadow-yellow-500/20"></div>
+                    <h3 className="text-xl font-black text-gray-800 dark:text-white uppercase tracking-widest">جاري مزامنة أحدث العروض...</h3>
+                    <p className="text-gray-400 font-bold mt-2">يرجى الانتظار قليلاً، نقوم بجلب البيانات من السحابة</p>
                 </div>
+            ) : (
+                <>
+                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1 md:gap-6">
+                        {filteredInstantProducts.slice(0, visibleCount).map((product, index) => {
+                            const brand = shoppingBrands.find(b => b.id === product.brandId);
+                            return (
+                                <InstantProductCard 
+                                    key={`${product.id}-${index}`} 
+                                    product={product} 
+                                    onQuickView={setQuickViewProduct} 
+                                    onFullView={handleFullView}
+                                    onAddToCart={(p) => handleAddToCart(p, p.sizes?.[0]?.size || p.size || 'Standard')}
+                                    brandName={brand?.name}
+                                />
+                            );
+                        })}
+                    </div>
+
+                    <div ref={loaderRef} className="h-20 flex items-center justify-center mt-10">
+                        {visibleCount < filteredInstantProducts.length ? (
+                            <div className="flex flex-col items-center gap-2 opacity-40">
+                                <div className="w-8 h-8 border-4 border-yellow-500 border-t-transparent animate-spin rounded-full"></div>
+                            </div>
+                        ) : (
+                            filteredInstantProducts.length > 0 && (
+                                <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">لقد وصلت إلى نهاية القائمة</p>
+                            )
+                        )}
+                    </div>
+
+                    {filteredInstantProducts.length === 0 && (
+                        <div className="py-40 text-center flex flex-col items-center bg-white dark:bg-gray-800 rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-700 mt-6">
+                            <div className="w-24 h-24 bg-gray-50 dark:bg-gray-900 rounded-full flex items-center justify-center text-gray-300 mb-4 shadow-inner"><SearchIcon /></div>
+                            <h3 className="text-2xl font-black text-gray-800 dark:text-white uppercase tracking-widest">لا توجد منتجات مطابقة</h3>
+                        </div>
+                    )}
+                </>
             )}
             <div className="h-24"></div>
         </div>
