@@ -358,7 +358,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // 1. البيانات الأساسية والحيوية (تحميل فوري وشامل)
         let loadedCollections = 0;
-        const totalCriticalCollections = 3; // news, products, stores
+        const totalCriticalCollections = 2; // نكتفي بالمنتجات والأخبار لفتح الموقع أسرع
 
         const checkAllLoaded = () => {
             loadedCollections++;
@@ -367,6 +367,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 setIsDataLoaded(true);
             }
         };
+
+        // مؤقت أمان: إذا تأخرت السحابة لأكثر من 2.5 ثانية، افتح الموقع فوراً
+        const safetyTimer = setTimeout(() => {
+            setIsLoading(false);
+            setIsDataLoaded(true);
+        }, 2500);
 
         const unsubscribes: (() => void)[] = [
             onSnapshot(collection(firestore, 'news'), (snap) => {
@@ -382,7 +388,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             onSnapshot(collection(firestore, 'stores'), (snap) => {
                 const data = snap.docs.map(d => ({ ...d.data(), id: Number(d.id) } as any));
                 setStores(data.sort((a, b) => a.id - b.id));
-                if (!isDataLoaded) checkAllLoaded();
             }),
             setupCloudListener<DeliveryPrice>('deliveryPrices', setDeliveryPrices, 'string'),
             setupCloudListener<ShippingOrigin>('shippingOrigins', setShippingOrigins, 'string'),
@@ -422,7 +427,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             );
         }
 
-        return () => unsubscribes.forEach(unsub => unsub());
+        return () => {
+            clearTimeout(safetyTimer);
+            unsubscribes.forEach(unsub => unsub());
+        };
     }, [currentUser]);
 
     // حساب أرصدة العملات بشكل تلقائي وسريع

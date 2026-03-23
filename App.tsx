@@ -95,14 +95,19 @@ const LoadingSpinner: React.FC = () => (
             <div className="flex justify-center">
                 <div className="w-[240px] h-[1px] bg-slate-100 dark:bg-slate-800 rounded-full relative mt-12 overflow-visible">
                     <div className="absolute -top-4 w-full h-8 flex justify-center items-center">
+                        <div className="truck-anim text-amber-500">
+                            <svg viewBox="0 0 64 64" width="32" height="32" fill="currentColor">
+                                <path d="M2,18h40v24H2V18z M44,26h10l8,8v8h-18V26z M12,48c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4S14.2,48,12,48z M52,48c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4S54.2,48,52,48z"/>
+                            </svg>
+                        </div>
                         <div className="plane-anim text-amber-500">
-                            <svg viewBox="0 0 64 64" width="32" height="32" fill="currentColor" style={{ transform: 'rotate(-15deg)' }}>
-                                <path d="M61.3,34.6c-0.1,0.5-0.5,0.8-1,0.8H47.2l-14,18.6c-0.3,0.4-0.8,0.7-1.3,0.7h-3.9c-0.7,0-1.2-0.6-1-1.3l3.7-12.1H18 c-0.7,0-1.3-0.5-1.3-1.2v-1.6c0-0.7,0.6-1.2,1.3-1.2h12.7l-3.7-12.1c-0.2-0.7,0.3-1.3,1-1.3h3.9c0.5,0,1,0.3,1.3,0.7l14,18.6h13.1 c0.3,0,0.7,0.1,1,0.3C61,33.9,61.3,34.6,61.3,34.6z"/>
+                            <svg viewBox="0 0 64 64" width="32" height="32" fill="currentColor">
+                                <path d="M62,32c0,0-10-4-20-4s-10,0-10,0L18,12h-6l8,16H4c-2,0-4,2-4,4s2,4,4,4h16l-8,16h6l14-16c0,0,0,0,10,0s20-4,20-4V32z"/>
                             </svg>
                         </div>
                         <div className="ship-anim text-amber-500">
                             <svg viewBox="0 0 64 64" width="36" height="36" fill="currentColor">
-                                <path d="M62,44H2l2,12h56L62,44z M10,40h4v4h-4V40z M16,40h4v4h-4V40z M22,40h4v4h-4V40z M28,40h4v4h-4V40z M34,40h4v4h-4V40z M40,40h4v4h-4V40z M46,40h4v4h-4V40z M52,40h4v4h-4V40z M50,32h6v8h-6V32z M42,32h6v8h-6V32z M34,32h6v8h-6V32z M26,32h6v8h-6V32z M18,32h6v8h-6V32z M10,32h6v8h-6V32z M14,24h36v8H14V24z M22,16h20v8H22V16z"/>
+                                <path d="M10,24h44l8,12v12H2V36L10,24z M16,16h8v8h-8V16z M28,16h8v8h-8V16z M40,16h8v8h-8V16z M22,8h20v8H22V8z"/>
                             </svg>
                         </div>
                     </div>

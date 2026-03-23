@@ -47,15 +47,21 @@
     background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.5) 50%, transparent 70%);
     animation: shine-sweep 2.5s infinite;
   }
+  .truck-anim {
+    position: absolute;
+    animation: vehicle-slide 6s infinite linear;
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.3));
+  }
   .plane-anim {
     position: absolute;
-    animation: vehicle-slide 4s infinite linear;
+    animation: vehicle-slide 6s infinite linear;
+    animation-delay: 2s;
     filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.3));
   }
   .ship-anim {
     position: absolute;
-    animation: vehicle-slide 4s infinite linear;
-    animation-delay: 2s;
+    animation: vehicle-slide 6s infinite linear;
+    animation-delay: 4s;
     filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.3));
   }
 }
