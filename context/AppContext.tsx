@@ -289,258 +289,110 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     useEffect(() => {
         const initApp = async () => {
-            // فتح النظام فوراً للمستخدم دون انتظار أي عمليات اتصال
+            // فتح النظام فوراً للمستخدم لضمان تجربة "السرعة القصوى"
             setIsLoading(false);
 
             try {
-                // تشغيل فحص البيانات في الخلفية بصمت
-                seedDatabaseIfNeeded().catch(err => console.error("Background seeding error:", err));
-                
+                // استرجاع جلسة المستخدم بسرعة من التخزين المحلي
                 const storedUser = localStorage.getItem('libyport_user');
                 if (storedUser) { 
                     try { 
                         const u = JSON.parse(storedUser);
                         if (u && u.id) {
                             setCurrentUser(u);
+                            // تحديث النشاط في الخلفية دون انتظار
                             updateDoc(doc(firestore, 'users', String(u.id)), { lastActive: new Date().toISOString() }).catch(() => {});
                         }
-                    } catch (e) { console.error("Stored user parsing failed:", e); } 
+                    } catch (e) { console.error("Session restore failed:", e); } 
                 }
 
-                const fetchCollection = async <T,>(colName: string, setter: React.Dispatch<React.SetStateAction<T[]>>, limitCount?: number, orderByField: string = 'id') => {
-                    const cacheKey = `lp_cache_${colName}`;
-                    
-                    // 1. محاولة التحميل الفوري من الكاش للعرض السريع
-                    const cached = localStorage.getItem(cacheKey);
-                    if (cached) {
-                        try {
-                            const parsed = JSON.parse(cached);
-                            if (Array.isArray(parsed) && parsed.length > 0) {
-                                setter(parsed);
-                            }
-                        } catch (e) {}
-                    }
-
-                    // 2. التحميل من السيرفر في الخلفية لتحديث البيانات
-                    try {
-                        let colRef: any = collection(firestore, colName);
-                        if (limitCount) {
-                            // Use the provided orderByField or default to 'id'
-                            // Note: Products use 'id', most others use 'date'
-                            colRef = query(colRef, orderBy(orderByField, 'desc'), limit(limitCount));
-                        }
-                        
-                        const snapshot = await getDocs(colRef);
-                        const data = snapshot.docs.map(doc => ({ ...(doc.data() as any), id: doc.id } as unknown as T));
-                        let processedData = data.map(item => {
-                            const anyItem = item as any;
-                            if (typeof anyItem.id === 'string' && !isNaN(Number(anyItem.id))) return { ...anyItem, id: Number(anyItem.id) };
-                            return item;
-                        });
-                        
-                        // Deduplicate after number conversion to prevent React key collisions
-                        const uniqueMap = new Map();
-                        processedData.forEach(item => uniqueMap.set((item as any).id, item));
-                        processedData = Array.from(uniqueMap.values());
-                        
-                        if (processedData.length >= 0) {
-                            setter(processedData as T[]);
-                            // تحديث الكاش للزيارة القادمة - السماح بتخزين المنتجات وأسعار التوصيل لسرعة العرض
-                            const cacheableCollections = ['users', 'stores', 'products', 'deliveryPrices', 'news', 'settings', 'orders', 'financialTransactions', 'companyTransactions'];
-                            if (cacheableCollections.includes(colName)) {
-                                try { 
-                                    const stringified = JSON.stringify(processedData);
-                                    // Only cache if it's within a reasonable size to avoid QuotaExceededError
-                                    if (stringified.length < 4 * 1024 * 1024) { // 4MB limit for individual items
-                                        localStorage.setItem(cacheKey, stringified); 
-                                    }
-                                } catch (e) {
-                                    console.warn(`Cache failed for ${colName}:`, e);
-                                    // If quota exceeded, clear some old caches
-                                    if (e instanceof Error && e.name === 'QuotaExceededError') {
-                                        const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('lp_cache_') && k !== cacheKey);
-                                        keysToRemove.forEach(k => localStorage.removeItem(k));
-                                    }
-                                }
-                            }
-                            return processedData;
-                        }
-                        return [] as T[];
-                    } catch (e: any) {
-                        handleFirestoreError(e, OperationType.LIST, colName);
-                        return [] as T[];
-                    }
-                };
-
-                // 1. تحميل البيانات الأساسية من الكاش فوراً وفتح النظام
-                const criticalCollections = ['users', 'stores', 'settings', 'news', 'products', 'deliveryPrices', 'orders', 'financialTransactions', 'companyTransactions', 'treasuries'];
-                criticalCollections.forEach(col => {
-                    const cached = localStorage.getItem(`lp_cache_${col}`);
-                    if (cached) {
-                        try {
-                            const parsed = JSON.parse(cached);
-                            if (col === 'users') setUsers(parsed);
-                            if (col === 'stores') setStores(parsed);
-                            if (col === 'news') setNews(parsed);
-                            if (col === 'products') setProducts(parsed);
-                            if (col === 'deliveryPrices') setDeliveryPrices(parsed);
-                            if (col === 'orders') setOrders(parsed);
-                            if (col === 'financialTransactions') setFinancialTransactions(parsed);
-                            if (col === 'companyTransactions') setCompanyTransactions(parsed);
-                            if (col === 'treasuries') setTreasuries(parsed);
-                        } catch (e) {}
-                    }
-                });
-
-                // 2. تشغيل عمليات التحميل من السيرفر بنظام الأولويات (Tiered Loading)
-                const fetchAll = async () => {
-                    // الأولوية القصوى: الإعدادات والأخبار وآخر الطلبات
-                    await Promise.allSettled([
-                        fetchCollection<News>('news', setNews),
-                        fetchCollection<Order>('orders', setOrders, 100, 'date'), // تحميل آخر 100 طلب فقط للسرعة
-                        fetchCollection<Product>('products', setProducts, 100, 'id'), // تحميل آخر 100 منتج فقط
-                    ]);
-
-                    // الأولوية الثانية: المستخدمين والمتاجر وأسعار التوصيل
-                    setTimeout(() => {
-                        Promise.allSettled([
-                            fetchCollection<User>('users', setUsers),
-                            fetchCollection<Store>('stores', setStores),
-                            fetchCollection<DeliveryPrice>('deliveryPrices', setDeliveryPrices),
-                            fetchCollection<Treasury>('treasuries', setTreasuries),
-                        ]);
-                    }, 500);
-
-                    // الأولوية الثالثة (في الخلفية): المعاملات المالية والبيانات الثقيلة
-                    setTimeout(() => {
-                        Promise.allSettled([
-                            fetchCollection<FinancialTransaction>('financialTransactions', setFinancialTransactions, 200, 'date'),
-                            fetchCollection<Client>('clients', setClients),
-                            fetchCollection<ClientTransaction>('clientTransactions', setClientTransactions, 200, 'date'),
-                            fetchCollection<CompanyTransaction>('companyTransactions', setCompanyTransactions, 200, 'date'),
-                            fetchCollection<CurrencyTransaction>('currencyTransactions', setCurrencyTransactions, 200, 'date'),
-                            fetchCollection<WithdrawalRequest>('withdrawalRequests', setWithdrawalRequests, 50, 'date'),
-                            fetchCollection<AppNotification>('notifications', setNotifications, 50, 'date'),
-                            fetchCollection<BankAccount>('bankAccounts', setBankAccounts),
-                            fetchCollection<ShippingOrigin>('shippingOrigins', setShippingOrigins),
-                            fetchCollection<ShoppingBrand>('shoppingBrands', setShoppingBrands),
-                        ]);
-                    }, 1500);
-                };
-
-                fetchAll();
-                
-                try {
-                    const settingsDoc = await getDoc(doc(firestore, 'settings', 'general'));
-                    if (settingsDoc.exists()) {
-                        const data = settingsDoc.data() as ExtendedSystemSettings;
-                        setSystemSettings(prev => ({ ...prev, ...data }));
-                        if (data.exchangeRateHistory?.length > 0) {
-                             const sortedHistory = [...data.exchangeRateHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                             setExchangeRate(sortedHistory[0].rate);
-                        }
-                    }
-                } catch (e) {
-                    handleFirestoreError(e, OperationType.GET, 'settings/general');
-                }
-
-                try {
-                    const companyDoc = await getDoc(doc(firestore, 'settings', 'company'));
-                    if (companyDoc.exists()) { setCompanyInfo(prev => ({ ...prev, ...companyDoc.data() })); }
-                } catch (e) {
-                    handleFirestoreError(e, OperationType.GET, 'settings/company');
-                }
+                // تشغيل فحص قاعدة البيانات في الخلفية البعيدة لعدم التأثير على سرعة الواجهة
+                setTimeout(() => {
+                    seedDatabaseIfNeeded().catch(() => {});
+                }, 5000);
 
             } catch (error) {
-                console.error("Initialization Critical Error:", error);
+                console.error("Initialization Error:", error);
             }
         };
         initApp();
     }, []);
 
     useEffect(() => {
-        // تحسين استقبال البيانات ليكون جزئياً وذكياً لتقليل البطء والتقطيع
-        const optimizeListener = <T extends { id: string | number }>(
+        // وظيفة موحدة لإدارة الاتصال السحابي المباشر (Real-time Cloud Sync)
+        // تعتمد كلياً على محرك Firebase الأصلي لضمان السرعة والدقة
+        const setupCloudListener = <T extends { id: string | number }>(
             colName: string, 
             setter: React.Dispatch<React.SetStateAction<T[]>>,
             idType: 'string' | 'number' = 'string',
-            limitCount?: number,
             orderByField: string = 'id'
         ) => {
-            let q = query(collection(firestore, colName));
-            if (limitCount) {
-                // Fetch recent items first for large collections
-                q = query(collection(firestore, colName), orderBy(orderByField, 'desc'), limit(limitCount));
-            }
+            // جلب كافة البيانات دون حدود (No Limits) لضمان ظهور كل المعلومات
+            const q = query(collection(firestore, colName), orderBy(orderByField, 'desc'));
 
-            return onSnapshot(q, (snapshot) => {
-                setter(prev => {
-                    const newMap = new Map(prev.map(item => [item.id, item]));
-                    snapshot.docChanges().forEach(change => {
-                        if (change.type === 'removed') {
-                            newMap.delete(idType === 'number' ? Number(change.doc.id) : change.doc.id);
-                        } else {
-                            const data = { ...change.doc.data(), id: idType === 'number' ? Number(change.doc.id) : change.doc.id } as unknown as T;
-                            newMap.set(data.id, data);
-                        }
-                    });
-                    // Sort by ID or Date descending to keep recent items at the top
-                    return Array.from(newMap.values()).sort((a: any, b: any) => {
-                        if (orderByField === 'date' && a.date && b.date) {
-                            return new Date(b.date).getTime() - new Date(a.date).getTime();
-                        }
-                        if (typeof a.id === 'number' && typeof b.id === 'number') return b.id - a.id;
-                        return String(b.id).localeCompare(String(a.id));
-                    });
-                });
+            // onSnapshot سيعيد البيانات من التخزين المحلي فوراً (Instant UI) ثم يتزامن مع السحاب
+            return onSnapshot(q, { includeMetadataChanges: false }, (snapshot) => {
+                const data = snapshot.docs.map(doc => ({ 
+                    ...(doc.data() as any), 
+                    id: idType === 'number' ? Number(doc.id) : doc.id 
+                } as unknown as T));
+                
+                setter(data);
             }, (error) => {
-                handleFirestoreError(error, OperationType.LIST, colName);
+                // تجاهل أخطاء التصاريح البسيطة أثناء تسجيل الخروج
+                if (error.code !== 'permission-denied') {
+                    handleFirestoreError(error, OperationType.LIST, colName);
+                }
             });
         };
 
-        // Listeners that are always active (Public)
+        // 1. البيانات الأساسية والحيوية (تحميل فوري وشامل)
         const unsubscribes: (() => void)[] = [
-            optimizeListener<Product>('products', setProducts, 'number', 500, 'id'),
-            optimizeListener<Store>('stores', setStores, 'number'),
-            optimizeListener<News>('news', setNews, 'number', 50, 'date'),
-            optimizeListener<DeliveryPrice>('deliveryPrices', setDeliveryPrices, 'string'),
-            optimizeListener<ShippingOrigin>('shippingOrigins', setShippingOrigins, 'string'),
-            optimizeListener<ShoppingBrand>('shoppingBrands', setShoppingBrands, 'string'),
+            setupCloudListener<News>('news', setNews, 'number', 'date'),
+            setupCloudListener<Product>('products', setProducts, 'number', 'id'),
+            setupCloudListener<Store>('stores', setStores, 'number'),
+            setupCloudListener<DeliveryPrice>('deliveryPrices', setDeliveryPrices, 'string'),
+            setupCloudListener<ShippingOrigin>('shippingOrigins', setShippingOrigins, 'string'),
+            setupCloudListener<ShoppingBrand>('shoppingBrands', setShoppingBrands, 'string'),
             onSnapshot(doc(firestore, 'settings', 'general'), (docSnap) => {
-                if (docSnap.exists()) { setSystemSettings(prev => ({ ...prev, ...docSnap.data() })); }
-            }, (error) => {
-                handleFirestoreError(error, OperationType.GET, 'settings/general');
+                if (docSnap.exists()) { 
+                    const data = docSnap.data() as ExtendedSystemSettings;
+                    setSystemSettings(prev => ({ ...prev, ...data }));
+                    if (data.exchangeRateHistory?.length > 0) {
+                        const sortedHistory = [...data.exchangeRateHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                        setExchangeRate(sortedHistory[0].rate);
+                    }
+                }
+            }),
+            onSnapshot(doc(firestore, 'settings', 'company'), (docSnap) => {
+                if (docSnap.exists()) { setCompanyInfo(prev => ({ ...prev, ...docSnap.data() })); }
             })
         ];
 
-        // Listeners that only run when a user is logged in (Private)
+        // 2. بيانات العمليات (تحميل شامل وفوري)
         if (currentUser) {
             unsubscribes.push(
-                optimizeListener<Order>('orders', setOrders, 'string', 500, 'date'),
-                optimizeListener<Client>('clients', setClients, 'string'),
-                optimizeListener<ClientTransaction>('clientTransactions', setClientTransactions, 'string', 300, 'date'),
-                optimizeListener<CompanyTransaction>('companyTransactions', setCompanyTransactions, 'string', 300, 'date'),
-                optimizeListener<AppNotification>('notifications', setNotifications, 'number', 100, 'date'),
-                optimizeListener<CurrencyTransaction>('currencyTransactions', setCurrencyTransactions, 'string', 300, 'date'),
-                optimizeListener<User>('users', setUsers, 'number'),
-                optimizeListener<BankAccount>('bankAccounts', setBankAccounts, 'number'),
-                optimizeListener<Treasury>('treasuries', setTreasuries, 'string'),
-                optimizeListener<FinancialTransaction>('financialTransactions', setFinancialTransactions, 'number', 300, 'date'),
-                optimizeListener<WithdrawalRequest>('withdrawalRequests', setWithdrawalRequests, 'number', 100, 'date'),
-                onSnapshot(query(collection(firestore, 'chatMessages'), orderBy('timestamp', 'desc'), limit(200)), (snap) => {
+                setupCloudListener<Order>('orders', setOrders, 'string', 'date'),
+                setupCloudListener<Client>('clients', setClients, 'string'),
+                setupCloudListener<ClientTransaction>('clientTransactions', setClientTransactions, 'string', 'date'),
+                setupCloudListener<CompanyTransaction>('companyTransactions', setCompanyTransactions, 'string', 'date'),
+                setupCloudListener<AppNotification>('notifications', setNotifications, 'number', 'date'),
+                setupCloudListener<CurrencyTransaction>('currencyTransactions', setCurrencyTransactions, 'string', 'date'),
+                setupCloudListener<User>('users', setUsers, 'number'),
+                setupCloudListener<BankAccount>('bankAccounts', setBankAccounts, 'number'),
+                setupCloudListener<Treasury>('treasuries', setTreasuries, 'string'),
+                setupCloudListener<FinancialTransaction>('financialTransactions', setFinancialTransactions, 'number', 'date'),
+                setupCloudListener<WithdrawalRequest>('withdrawalRequests', setWithdrawalRequests, 'number', 'date'),
+                onSnapshot(query(collection(firestore, 'chatMessages'), orderBy('timestamp', 'desc')), (snap) => {
                     setChatMessages(snap.docs.map(d => d.data() as ChatMessage));
-                }, (error) => {
-                    handleFirestoreError(error, OperationType.LIST, 'chatMessages');
                 })
             );
         }
 
-        return () => { 
-            unsubscribes.forEach(unsub => unsub());
-        };
+        return () => unsubscribes.forEach(unsub => unsub());
     }, [currentUser]);
 
-    // حساب أرصدة العملات بشكل منفصل لضمان السرعة وعدم التقطيع
+    // حساب أرصدة العملات بشكل تلقائي وسريع
     useEffect(() => {
         const balances: Record<CurrencyType, number> = { [CurrencyType.USD]: 0, [CurrencyType.EUR]: 0, [CurrencyType.AED]: 0, [CurrencyType.SAR]: 0, [CurrencyType.LYD]: 0 };
         currencyTransactions.forEach(tx => {
@@ -554,8 +406,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCurrencyBalances(balances);
     }, [currencyTransactions]);
 
-    // حساب أرصدة الخزائن (المصارف، العهد، شركات التوصيل)
+    // حساب أرصدة الخزائن (المصارف، العهد، شركات التوصيل) - يعمل فور توفر البيانات
     useEffect(() => {
+        if (orders.length === 0 && treasuries.length === 0) return;
+        
         const normalizeType = (type: any) => {
             if (!type) return null;
             if (type === 'Cash' || type === 'cash' || type === TreasuryType.Cash) return TreasuryType.Cash;
