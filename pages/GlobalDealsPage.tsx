@@ -107,7 +107,7 @@ const GenerateDealsModal: React.FC<{
                 if (idea.sizes && idea.sizes.length > 0) {
                     idea.sizes.forEach(size => {
                         finalVariants.push({
-                            id: Date.now() + variantCounter++,
+                            id: Date.now() + variantCounter++ + Math.floor(Math.random() * 1000),
                             name: `${idea.name} (${size})`,
                             price: priceInLYD,
                             costInUSD: idea.priceInUSD,

@@ -1,0 +1,139 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LibyPort - بوابة طرابلس العالمية</title>
+  <meta name="description" content="LibyPort هي بوابتك الموثوقة للتسوق العالمي والشحن اللوجستي في ليبيا. تسوق من أمازون، شي إن، وعلي إكسبريس واستلم في طرابلس.">
+  <meta name="keywords" content="شحن، ليبيا، طرابلس، تسوق، أمازون، شي إن، لوجستيك، LibyPort">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.liby2port.com/">
+  <meta property="og:title" content="LibyPort - بوابة طرابلس العالمية">
+  <meta property="og:description" content="بوابتك الموثوقة للتسوق العالمي والشحن اللوجستي في ليبيا.">
+  <meta property="og:image" content="https://up6.cc/2025/10/176278012677161.jpg">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://www.liby2port.com/">
+  <meta property="twitter:title" content="LibyPort - بوابة طرابلس العالمية">
+  <meta property="twitter:description" content="بوابتك الموثوقة للتسوق العالمي والشحن اللوجستي في ليبيا.">
+  <meta property="twitter:image" content="https://up6.cc/2025/10/176278012677161.jpg">
+  
+  <!-- Browser Favicon -->
+  <link rel="icon" type="image/jpeg" href="https://up6.cc/2025/10/176278012677161.jpg">
+  <link rel="apple-touch-icon" href="https://up6.cc/2025/10/176278012677161.jpg">
+  <link rel="preconnect" href="https://up6.cc">
+  <link rel="dns-prefetch" href="https://up6.cc">
+  <link rel="preconnect" href="https://www.gstatic.com">
+  <link rel="dns-prefetch" href="https://www.gstatic.com">
+  
+  <link rel="manifest" href="/assets/manifest-DR2W1ozR.json">
+  <meta name="theme-color" content="#f59e0b">
+  
+  <!-- iOS PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="LibyPort">
+  <link rel="apple-touch-icon" href="https://up6.cc/2025/10/176278012677161.jpg">
+  <link rel="apple-touch-startup-image" href="https://up6.cc/2025/10/176278012677161.jpg">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  
+  <script>
+    // تطبيق الثيم المحفوظ فوراً قبل رندر الصفحة لمنع الوميض الأبيض
+    const savedTheme = localStorage.getItem('libyport_theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
+
+  <style>
+    /* Pre-loader styles */
+    #pre-loader {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #ffffff; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; z-index: 99999;
+      transition: opacity 0.5s ease-out, visibility 0.5s;
+    }
+    .dark #pre-loader { background: #030712; }
+    .pre-logo { width: 80px; height: 80px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.95); } }
+    
+    /* تحسينات CSS للوضع الليلي والنهاري */
+    html {
+      height: 100%;
+      background-color: #f3f4f6;
+    }
+    html.dark {
+      background-color: #111827;
+    }
+    body {
+      font-family: 'Cairo', sans-serif;
+      min-height: 100%;
+      background-color: #f3f4f6;
+    }
+    .dark body {
+      background-color: #111827;
+    }
+    #root {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+  </style>
+  
+
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
+    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@6.22.3",
+    "firebase/app": "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "firebase/": "https://esm.sh/firebase@^12.9.0/"
+  }
+}
+</script>
+  <script type="module" crossorigin src="/assets/index-B8YtLt6x.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/vendor-react-B6LvxdmA.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-firebase-DW1h0piP.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-utils-ByR3V3g0.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-DC6MUMnn.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+  <div id="pre-loader">
+    <img src="https://up6.cc/2025/10/176278012677161.jpg" alt="Loading..." class="pre-logo">
+    <div style="margin-top: 20px; font-weight: 900; letter-spacing: 0.2em; color: #f59e0b;">LIBYPORT</div>
+  </div>
+  <div id="root"></div>
+  <script>
+    // إخفاء الـ pre-loader بعد تحميل الصفحة
+    window.addEventListener('load', () => {
+      const loader = document.getElementById('pre-loader');
+      if (loader) {
+        loader.style.opacity = '0';
+        setTimeout(() => loader.style.visibility = 'hidden', 500);
+      }
+    });
+  </script>
+</body>
+</html>

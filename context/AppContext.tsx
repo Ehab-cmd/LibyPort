@@ -307,8 +307,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
                 // تشغيل فحص قاعدة البيانات في الخلفية البعيدة لعدم التأثير على سرعة الواجهة
                 setTimeout(() => {
-                    seedDatabaseIfNeeded().catch(() => {});
-                }, 5000);
+                    console.log("Triggering seedDatabaseIfNeeded...");
+                    seedDatabaseIfNeeded().then(() => {
+                        console.log("Seeding completed successfully.");
+                    }).catch((err) => {
+                        console.error("Seeding failed:", err);
+                    });
+                }, 1000);
 
             } catch (error) {
                 console.error("Initialization Error:", error);
@@ -356,9 +361,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             });
         };
 
-        // 1. البيانات الأساسية والحيوية (تحميل فوري وشامل)
+        // 1. تشغيل جميع المستمعين فوراً لضمان أسرع جلب للبيانات من السحابة
         let loadedCollections = 0;
-        const totalCriticalCollections = 2; // نكتفي بالمنتجات والأخبار لفتح الموقع أسرع
+        const totalCriticalCollections = 3;
 
         const checkAllLoaded = () => {
             loadedCollections++;
@@ -368,26 +373,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
         };
 
-        // مؤقت أمان: إذا تأخرت السحابة لأكثر من 2.5 ثانية، افتح الموقع فوراً
-        const safetyTimer = setTimeout(() => {
-            setIsLoading(false);
-            setIsDataLoaded(true);
-        }, 2500);
-
         const unsubscribes: (() => void)[] = [
             onSnapshot(collection(firestore, 'news'), (snap) => {
                 const data = snap.docs.map(d => ({ ...d.data(), id: d.id } as any));
                 setNews(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+                if (!isDataLoaded) checkAllLoaded();
+            }, (err) => {
+                console.error("News listener error:", err);
                 if (!isDataLoaded) checkAllLoaded();
             }),
             onSnapshot(collection(firestore, 'products'), (snap) => {
                 const data = snap.docs.map(d => ({ ...d.data(), id: d.id } as any));
                 setProducts(data.sort((a, b) => Number(b.id) - Number(a.id)));
                 if (!isDataLoaded) checkAllLoaded();
+            }, (err) => {
+                console.error("Products listener error:", err);
+                if (!isDataLoaded) checkAllLoaded();
             }),
             onSnapshot(collection(firestore, 'stores'), (snap) => {
                 const data = snap.docs.map(d => ({ ...d.data(), id: Number(d.id) } as any));
                 setStores(data.sort((a, b) => a.id - b.id));
+                if (!isDataLoaded) checkAllLoaded();
+            }, (err) => {
+                console.error("Stores listener error:", err);
+                if (!isDataLoaded) checkAllLoaded();
             }),
             setupCloudListener<DeliveryPrice>('deliveryPrices', setDeliveryPrices, 'string'),
             setupCloudListener<ShippingOrigin>('shippingOrigins', setShippingOrigins, 'string'),
@@ -407,7 +416,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             })
         ];
 
-        // 2. بيانات العمليات (تحميل شامل وفوري)
+        // 2. جلب بقية البيانات التشغيلية فوراً دون تأخير
         if (currentUser) {
             unsubscribes.push(
                 setupCloudListener<Order>('orders', setOrders, 'string', 'date'),
@@ -421,14 +430,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 setupCloudListener<Treasury>('treasuries', setTreasuries, 'string'),
                 setupCloudListener<FinancialTransaction>('financialTransactions', setFinancialTransactions, 'number', 'date'),
                 setupCloudListener<WithdrawalRequest>('withdrawalRequests', setWithdrawalRequests, 'number', 'date'),
-                onSnapshot(query(collection(firestore, 'chatMessages'), orderBy('timestamp', 'desc')), (snap) => {
+                onSnapshot(query(collection(firestore, 'chatMessages'), orderBy('timestamp', 'desc'), limit(100)), (snap) => {
                     setChatMessages(snap.docs.map(d => d.data() as ChatMessage));
                 })
             );
         }
 
         return () => {
-            clearTimeout(safetyTimer);
             unsubscribes.forEach(unsub => unsub());
         };
     }, [currentUser]);
@@ -447,240 +455,137 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCurrencyBalances(balances);
     }, [currencyTransactions]);
 
-    // حساب أرصدة الخزائن (المصارف، العهد، شركات التوصيل) - يعمل فور توفر البيانات
+    // حساب أرصدة الخزائن (المصارف، العهد، شركات التوصيل) - تحسين الأداء باستخدام التجميع المسبق
     useEffect(() => {
         if (orders.length === 0 && treasuries.length === 0) return;
         
-        const normalizeType = (type: any) => {
-            if (!type) return null;
-            if (type === 'Cash' || type === 'cash' || type === TreasuryType.Cash) return TreasuryType.Cash;
-            if (type === 'Bank' || type === 'bank' || type === TreasuryType.Bank) return TreasuryType.Bank;
-            if (type === 'DeliveryCompany' || type === 'delivery' || type === TreasuryType.DeliveryCompany) return TreasuryType.DeliveryCompany;
-            return type;
-        };
+        // استخدام مؤقت لتجنب الحساب المتكرر جداً عند تدفق البيانات
+        const timer = setTimeout(() => {
+            const normalizeType = (type: any) => {
+                if (!type) return null;
+                const t = String(type).toLowerCase();
+                if (t === 'cash' || type === TreasuryType.Cash) return TreasuryType.Cash;
+                if (t === 'bank' || type === TreasuryType.Bank) return TreasuryType.Bank;
+                if (t === 'deliverycompany' || t === 'delivery' || type === TreasuryType.DeliveryCompany) return TreasuryType.DeliveryCompany;
+                return type;
+            };
 
-        const admins = users.filter(u => u.role === UserRole.Admin || u.role === UserRole.SuperAdmin);
-        const deliveryCos = systemSettings.deliveryCompanies || [];
-        
-        const ordersByTreasury = new Map<string, Order[]>();
-        const ordersByDepositTreasury = new Map<string, Order[]>();
-        const ordersByDeliveryCompany = new Map<string, Order[]>();
-        
-        orders.forEach(o => {
-            if (o.isDeleted) return;
-            const colId = String(o.collectionTreasuryId);
-            if (!ordersByTreasury.has(colId)) ordersByTreasury.set(colId, []);
-            ordersByTreasury.get(colId)!.push(o);
-
-            if (o.deliveryCompanyId) {
-                const dcId = String(o.deliveryCompanyId);
-                if (!ordersByDeliveryCompany.has(dcId)) ordersByDeliveryCompany.set(dcId, []);
-                ordersByDeliveryCompany.get(dcId)!.push(o);
-            }
+            const admins = users.filter(u => u.role === UserRole.Admin || u.role === UserRole.SuperAdmin);
+            const deliveryCos = systemSettings.deliveryCompanies || [];
             
-            const depId = o.depositTreasuryId ? String(o.depositTreasuryId) : null;
-            if (depId) {
-                if (!ordersByDepositTreasury.has(depId)) ordersByDepositTreasury.set(depId, []);
-                ordersByDepositTreasury.get(depId)!.push(o);
-            }
-        });
-
-        const txByToTreasury = new Map<string, CompanyTransaction[]>();
-        const txByFromTreasury = new Map<string, CompanyTransaction[]>();
-        const txByTreasuryId = new Map<string, CompanyTransaction[]>();
-        
-        companyTransactions.forEach(tx => {
-            const toId = String(tx.toTreasuryId);
-            if (tx.toTreasuryId) {
-                if (!txByToTreasury.has(toId)) txByToTreasury.set(toId, []);
-                txByToTreasury.get(toId)!.push(tx);
-            }
+            // تجميع البيانات في خرائط للوصول السريع O(1)
+            const ordersByTreasury = new Map<string, number>();
+            const ordersByDepositTreasury = new Map<string, number>();
+            const ordersByDeliveryCompany = new Map<string, number>();
             
-            const fromId = String(tx.fromTreasuryId);
-            if (tx.fromTreasuryId) {
-                if (!txByFromTreasury.has(fromId)) txByFromTreasury.set(fromId, []);
-                txByFromTreasury.get(fromId)!.push(tx);
-            }
-
-            const trId = String(tx.treasuryId);
-            if (tx.treasuryId) {
-                if (!txByTreasuryId.has(trId)) txByTreasuryId.set(trId, []);
-                txByTreasuryId.get(trId)!.push(tx);
-            }
-        });
-
-        const financialTxsByTreasury = new Map<string, FinancialTransaction[]>();
-        financialTransactions.forEach(tx => {
-            const trId = String(tx.treasuryId);
-            if (tx.treasuryId) {
-                if (!financialTxsByTreasury.has(trId)) financialTxsByTreasury.set(trId, []);
-                financialTxsByTreasury.get(trId)!.push(tx);
-            }
-        });
-
-        const calculateBalance = (tId: string, nType: TreasuryType, targetLegacyId: string | null, initialBalance: number = 0) => {
-            let balance = initialBalance;
-            const possibleIds = Array.from(new Set([String(tId), targetLegacyId].filter(Boolean) as string[]));
-            
-            possibleIds.forEach(id => {
-                // 1. تحصيل متبقي الطلبات (عند التسليم)
-                (ordersByTreasury.get(id) || []).forEach(o => {
-                    if (o.isDeleted || o.purchaseTrackingStatus === PurchaseTrackingStatus.Cancelled) return;
-
-                    // محاولة الحصول على نوع الخزينة من البيانات المخزنة في الطلب أو من قائمة الخزائن لضمان دقة المطابقة
-                    const orderTreasuryType = o.collectedToTreasury || treasuries.find(t => String(t.id) === String(o.collectionTreasuryId))?.type;
-                    
-                    const isMatch = ((String(o.collectionTreasuryId) === String(tId)) || 
-                        (targetLegacyId && String(o.collectionTreasuryId) === String(targetLegacyId))) && 
-                        normalizeType(orderTreasuryType) === nType;
-                    
-                    // التوصيل الفوري يعتبر محصلاً تلقائياً لأنه يتم الدفع عند الاستلام مباشرة
-                    if ((o.isPaymentConfirmed || o.orderType === OrderType.InstantDelivery) && isMatch) {
-                        // البحث عن معاملات تحصيل مبيعات مرتبطة بهذا الطلب في هذه الخزينة للحصول على الصافي (بعد العمولة)
-                        const orderTxs = (txByToTreasury.get(id) || []).filter(t => t.type === CompanyTxType.SaleCollection && t.orderId === o.id);
-                        if (orderTxs.length > 0) {
-                            balance += orderTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-                        } else {
-                            balance += ((Number(o.total) || 0) - (Number(o.deposit) || 0));
-                        }
-                    }
-                });
-
-                // إضافة منطق خاص لشركات التوصيل (الذمم): الطلبات المسلمة تزيد المديونية، والمسددة تنقصها
-                if (nType === TreasuryType.DeliveryCompany) {
-                    (ordersByDeliveryCompany.get(id) || []).forEach(o => {
-                        if (o.isDeleted || o.purchaseTrackingStatus === PurchaseTrackingStatus.Cancelled) return;
-                        const amount = (Number(o.total) || 0) - (Number(o.deposit) || 0);
-                        if (o.deliveryTrackingStatus === DeliveryTrackingStatus.Delivered) {
-                            balance += amount;
-                        }
-                        if (o.isPaymentConfirmed) {
-                            balance -= amount;
-                        }
-                    });
+            orders.forEach(o => {
+                if (o.isDeleted || o.purchaseTrackingStatus === PurchaseTrackingStatus.Cancelled) return;
+                
+                // تحصيل متبقي الطلبات
+                const colId = String(o.collectionTreasuryId);
+                if (o.isPaymentConfirmed || o.orderType === OrderType.InstantDelivery) {
+                    const amount = (Number(o.total) || 0) - (Number(o.deposit) || 0);
+                    ordersByTreasury.set(colId, (ordersByTreasury.get(colId) || 0) + amount);
                 }
 
-                // 2. تحصيل العربون
-                (ordersByDepositTreasury.get(id) || []).forEach(o => {
-                    if (o.isDeleted || o.purchaseTrackingStatus === PurchaseTrackingStatus.Cancelled) return;
-                    
-                    const orderDepositTreasuryType = o.depositTreasuryType || treasuries.find(t => String(t.id) === String(o.depositTreasuryId))?.type;
+                // تحصيل العربون
+                const depId = o.depositTreasuryId ? String(o.depositTreasuryId) : null;
+                if (o.isDepositPaid && depId) {
+                    const amount = (Number(o.deposit) || 0) - (Number(o.depositCommission) || 0);
+                    ordersByDepositTreasury.set(depId, (ordersByDepositTreasury.get(depId) || 0) + amount);
+                }
 
-                    const isMatch = ((String(o.depositTreasuryId) === String(tId)) || 
-                        (targetLegacyId && String(o.depositTreasuryId) === String(targetLegacyId))) && 
-                        normalizeType(orderDepositTreasuryType) === nType;
-                    
-                    if (o.isDepositPaid && isMatch) {
-                        balance += (Number(o.deposit) || 0) - (Number(o.depositCommission) || 0);
-                    }
-                });
-
-                // 3. التحويلات الواردة (To) والمعاملات العامة الواردة
-                (txByToTreasury.get(id) || []).forEach(tx => {
-                    if (tx.type === CompanyTxType.SaleCollection && tx.orderId) return;
-                    
-                    const txTreasuryType = tx.toTreasury || tx.treasuryType || treasuries.find(t => String(t.id) === String(tx.toTreasuryId))?.type;
-                    const isMatch = (String(tx.toTreasuryId) === String(tId) || (targetLegacyId && String(tx.toTreasuryId) === String(targetLegacyId))) &&
-                        (!txTreasuryType || normalizeType(txTreasuryType) === nType);
-                    
-                    if (isMatch) {
-                        const isIncome = (tx.type as string) === CompanyTxType.Income || 
-                                       (tx.type as string) === CompanyTxType.SaleCollection ||
-                                       (tx.type as string) === CompanyTxType.TreasuryTransfer ||
-                                       (tx.type as string) === TransactionType.Collection ||
-                                       (tx.type as string) === TransactionType.SubscriptionFee;
-                        
-                        if (isIncome) {
-                            balance += (Number(tx.amount) || 0);
-                        }
-                    }
-                });
-
-                // 4. التحويلات الصادرة (From)
-                (txByFromTreasury.get(id) || []).forEach(tx => {
-                    const txTreasuryType = tx.fromTreasury || tx.treasuryType || treasuries.find(t => String(t.id) === String(tx.fromTreasuryId))?.type;
-                    const isMatch = (String(tx.fromTreasuryId) === String(tId) || (targetLegacyId && String(tx.fromTreasuryId) === String(targetLegacyId))) &&
-                        (!txTreasuryType || normalizeType(txTreasuryType) === nType);
-                    
-                    if (isMatch) {
-                        const isExpense = (tx.type as string) === CompanyTxType.Expense || 
-                                        (tx.type as string) === CompanyTxType.Purchase || 
-                                        (tx.type as string) === CompanyTxType.DebtPayment || 
-                                        (tx.type as string) === CompanyTxType.StoreDeduction ||
-                                        (tx.type as string) === CompanyTxType.TreasuryTransfer ||
-                                        (tx.type as string) === TransactionType.Payment ||
-                                        (tx.type as string) === TransactionType.Withdrawal;
-                        
-                        if (isExpense) {
-                            balance -= (Number(tx.amount) || 0);
-                        }
-                    }
-                });
-
-                // 5. المعاملات المالية اليدوية (إيرادات / مصاريف)
-                (txByTreasuryId.get(id) || []).forEach(tx => {
-                    if (tx.type === CompanyTxType.TreasuryTransfer || tx.type === CompanyTxType.SaleCollection) return;
-
-                    const txTreasuryType = tx.treasuryType || treasuries.find(t => String(t.id) === String(tx.treasuryId))?.type;
-                    const isMatch = (String(tx.treasuryId) === String(tId) || (targetLegacyId && String(tx.treasuryId) === String(targetLegacyId))) &&
-                        (!txTreasuryType || normalizeType(txTreasuryType) === nType);
-                    
-                    if (isMatch) {
-                        const isIncome = (tx.type as string) === CompanyTxType.Income || (tx.type as string) === TransactionType.Collection || (tx.type as string) === TransactionType.SubscriptionFee;
-                        const isExpense = (tx.type as string) === CompanyTxType.Expense || (tx.type as string) === TransactionType.Payment || (tx.type as string) === TransactionType.Withdrawal || (tx.type as string) === CompanyTxType.Purchase || (tx.type as string) === CompanyTxType.DebtPayment || (tx.type as string) === CompanyTxType.StoreDeduction;
-
-                        if (isIncome) {
-                            balance += (Number(tx.amount) || 0);
-                        } else if (isExpense) {
-                            balance -= (Number(tx.amount) || 0);
-                        }
-                    }
-                });
-
-                // 6. المعاملات المالية المتقدمة (سحب رصيد، اشتراكات، إلخ)
-                (financialTxsByTreasury.get(id) || []).forEach(tx => {
-                    const txTreasuryType = tx.treasuryType || treasuries.find(t => String(t.id) === String(tx.treasuryId))?.type;
-                    const isMatch = (String(tx.treasuryId) === String(tId) || 
-                        (targetLegacyId && String(tx.treasuryId) === String(targetLegacyId))) &&
-                        (!txTreasuryType || normalizeType(txTreasuryType) === nType);
-                    
-                    if (isMatch) {
-                        if (tx.type === TransactionType.Collection || tx.type === TransactionType.SubscriptionFee) {
-                            balance += (Number(tx.amount) || 0);
-                        } else if (tx.type === TransactionType.Withdrawal || tx.type === TransactionType.Payment) {
-                            balance -= (Number(tx.amount) || 0);
-                        }
-                    }
-                });
+                // مديونية شركات التوصيل
+                if (o.deliveryCompanyId) {
+                    const dcId = String(o.deliveryCompanyId);
+                    const amount = (Number(o.total) || 0) - (Number(o.deposit) || 0);
+                    let current = ordersByDeliveryCompany.get(dcId) || 0;
+                    if (o.deliveryTrackingStatus === DeliveryTrackingStatus.Delivered) current += amount;
+                    if (o.isPaymentConfirmed) current -= amount;
+                    ordersByDeliveryCompany.set(dcId, current);
+                }
             });
-            return balance;
-        };
 
-        const finalBalances: any[] = [];
-        treasuries.forEach(t => {
-            const nType = normalizeType(t.type);
-            const legacyId = t.userId ? String(t.userId) : (t.bankId ? String(t.bankId) : null);
-            finalBalances.push({ ...t, type: nType, balance: calculateBalance(String(t.id), nType, legacyId, t.initialBalance || 0) });
-        });
+            const treasuryTxBalance = new Map<string, number>();
+            
+            companyTransactions.forEach(tx => {
+                const amount = Number(tx.amount) || 0;
+                const toId = String(tx.toTreasuryId);
+                const fromId = String(tx.fromTreasuryId);
+                const trId = String(tx.treasuryId);
 
-        admins.forEach(u => {
-            if (treasuries.find(t => t.userId === u.id)) return;
-            const balance = calculateBalance(String(u.id), TreasuryType.Cash, null);
-            finalBalances.push({ id: String(u.id), name: u.name, type: TreasuryType.Cash, userId: u.id, balance });
-        });
+                if (tx.toTreasuryId) {
+                    const isIncome = tx.type === CompanyTxType.Income || 
+                                   tx.type === CompanyTxType.SaleCollection ||
+                                   tx.type === CompanyTxType.TreasuryTransfer ||
+                                   (tx.type as any) === TransactionType.Collection ||
+                                   (tx.type as any) === TransactionType.SubscriptionFee;
+                    if (isIncome && tx.type !== CompanyTxType.SaleCollection) { // SaleCollection handled via orders
+                        treasuryTxBalance.set(toId, (treasuryTxBalance.get(toId) || 0) + amount);
+                    }
+                }
+                
+                if (tx.fromTreasuryId) {
+                    const isExpense = tx.type === CompanyTxType.Expense || 
+                                    tx.type === CompanyTxType.Purchase || 
+                                    tx.type === CompanyTxType.DebtPayment || 
+                                    tx.type === CompanyTxType.StoreDeduction ||
+                                    tx.type === CompanyTxType.TreasuryTransfer ||
+                                    (tx.type as any) === TransactionType.Payment ||
+                                    (tx.type as any) === TransactionType.Withdrawal;
+                    if (isExpense) {
+                        treasuryTxBalance.set(fromId, (treasuryTxBalance.get(fromId) || 0) - amount);
+                    }
+                }
 
-        bankAccounts.forEach(bank => {
-            if (treasuries.find(t => t.bankId === bank.id)) return;
-            const balance = calculateBalance(String(bank.id), TreasuryType.Bank, null);
-            finalBalances.push({ id: String(bank.id), name: bank.bankName, type: TreasuryType.Bank, bankId: bank.id, accountNumber: bank.accountNumber, balance });
-        });
+                if (tx.treasuryId && tx.type !== CompanyTxType.TreasuryTransfer && tx.type !== CompanyTxType.SaleCollection) {
+                    const isIncome = tx.type === CompanyTxType.Income || (tx.type as any) === TransactionType.Collection;
+                    const isExpense = tx.type === CompanyTxType.Expense || (tx.type as any) === TransactionType.Payment;
+                    if (isIncome) treasuryTxBalance.set(trId, (treasuryTxBalance.get(trId) || 0) + amount);
+                    else if (isExpense) treasuryTxBalance.set(trId, (treasuryTxBalance.get(trId) || 0) - amount);
+                }
+            });
 
-        deliveryCos.forEach(co => {
-            const balance = calculateBalance(co.id, TreasuryType.DeliveryCompany, null);
-            finalBalances.push({ id: co.id, name: co.name, type: TreasuryType.DeliveryCompany, balance });
-        });
+            financialTransactions.forEach(tx => {
+                const trId = String(tx.treasuryId);
+                const amount = Number(tx.amount) || 0;
+                if (tx.type === TransactionType.Collection || tx.type === TransactionType.SubscriptionFee) {
+                    treasuryTxBalance.set(trId, (treasuryTxBalance.get(trId) || 0) + amount);
+                } else if (tx.type === TransactionType.Withdrawal || tx.type === TransactionType.Payment) {
+                    treasuryTxBalance.set(trId, (treasuryTxBalance.get(trId) || 0) - amount);
+                }
+            });
 
-        setTreasuryBalances(finalBalances);
+            const getFinalBalance = (tId: string, initial: number = 0) => {
+                return initial + 
+                       (ordersByTreasury.get(tId) || 0) + 
+                       (ordersByDepositTreasury.get(tId) || 0) + 
+                       (treasuryTxBalance.get(tId) || 0);
+            };
+
+            const finalBalances: any[] = [];
+            treasuries.forEach(t => {
+                finalBalances.push({ ...t, balance: getFinalBalance(String(t.id), t.initialBalance || 0) });
+            });
+
+            admins.forEach(u => {
+                if (treasuries.find(t => t.userId === u.id)) return;
+                finalBalances.push({ id: String(u.id), name: u.name, type: TreasuryType.Cash, userId: u.id, balance: getFinalBalance(String(u.id)) });
+            });
+
+            bankAccounts.forEach(bank => {
+                if (treasuries.find(t => t.bankId === bank.id)) return;
+                finalBalances.push({ id: String(bank.id), name: bank.bankName, type: TreasuryType.Bank, bankId: bank.id, accountNumber: bank.accountNumber, balance: getFinalBalance(String(bank.id)) });
+            });
+
+            deliveryCos.forEach(co => {
+                finalBalances.push({ id: co.id, name: co.name, type: TreasuryType.DeliveryCompany, balance: ordersByDeliveryCompany.get(co.id) || 0 });
+            });
+
+            setTreasuryBalances(finalBalances);
+        }, 300);
+
+        return () => clearTimeout(timer);
     }, [treasuries, bankAccounts, orders, companyTransactions, financialTransactions, systemSettings, users]);
 
     // تحديث شارة التنبيهات بشكل منفصل
@@ -874,7 +779,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const addProduct = async (d: any) => {
-        const id = Date.now();
+        const id = Date.now() + Math.floor(Math.random() * 10000);
         // Recalculate stock if sizes are provided
         let stock = d.stock || 0;
         if (d.sizes && d.sizes.length > 0) {
@@ -958,7 +863,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         },
         login, logout, 
         registerUser: async(userData: any, storeNames: string[]) => {
-            const newUserId = Date.now();
+            const newUserId = Date.now() + Math.floor(Math.random() * 10000);
             const userRef = doc(firestore, 'users', String(newUserId));
             const createdStoreIds: number[] = [];
             const batch = writeBatch(firestore);
@@ -998,7 +903,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
         }, 
         addUser: async(userData: any, storeNames: string[]) => {
-            const newUserId = Date.now();
+            const newUserId = Date.now() + Math.floor(Math.random() * 10000);
             const batch = writeBatch(firestore);
             const createdStoreIds: number[] = [];
             storeNames.forEach(name => {
@@ -1195,7 +1100,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             try {
                 const batch = writeBatch(firestore);
                 newProducts.forEach((p, index) => {
-                    const id = Date.now() + index;
+                    const id = Date.now() + index + Math.floor(Math.random() * 1000);
                     const docRef = doc(firestore, 'products', String(id));
                     batch.set(docRef, cleanData({ ...p, id, isDeleted: false, isPendingDeletion: false, dateAdded: new Date().toISOString() }));
                 });
@@ -1205,7 +1110,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }, 
         addNews: async (title: string, content: string, videoUrl?: string, isPinned?: boolean, expiresAt?: string) => {
             if (!currentUser) return;
-            const id = Date.now();
+            const id = Date.now() + Math.floor(Math.random() * 10000);
             const newNews: News = cleanData({ 
                 id, 
                 title, 
@@ -1224,7 +1129,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sendChatMessage: async(msg: any, receiverId: number)=>{
             if (!currentUser || !receiverId) return;
             const isAdmin = currentUser.role === UserRole.Admin || currentUser.role === UserRole.SuperAdmin;
-            const id = Date.now();
+            const id = Date.now() + Math.floor(Math.random() * 10000);
             const newMsg: ChatMessage = cleanData({ id, conversationId: isAdmin ? receiverId : currentUser.id, senderId: currentUser.id, senderName: currentUser.name, content: msg.content, timestamp: new Date().toISOString(), isRead: false, attachmentUrl: msg.attachmentUrl });
             await setDoc(doc(firestore, 'chatMessages', String(id)), newMsg);
             sendNotification(receiverId, `رسالة جديدة من ${currentUser.name}`, 'chat', '/support');
@@ -1252,7 +1157,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         },
         requestWithdrawal: async(amount: number) => {
             if (!currentUser) return { success: false, message: 'يجب تسجيل الدخول' };
-            const id = Date.now();
+            const id = Date.now() + Math.floor(Math.random() * 10000);
             const req: WithdrawalRequest = { id, userId: currentUser.id, amount, status: WithdrawalRequestStatus.Pending, requestDate: new Date().toISOString() };
             await setDoc(doc(firestore, 'withdrawalRequests', String(id)), req);
             return { success: true, message: 'تم تقديم الطلب' };
@@ -1342,7 +1247,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (!order) return;
 
             const updateRequest = {
-                id: String(Date.now()),
+                id: String(Date.now() + Math.floor(Math.random() * 10000)),
                 orderId,
                 updates,
                 reason,

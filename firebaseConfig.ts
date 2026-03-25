@@ -1,25 +1,18 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from "firebase/firestore";
+import firebaseConfigData from './firebase-applet-config.json';
 
-// إعدادات مشروع Firebase
-export const firebaseConfig = {
-  apiKey: "AIzaSyArgzirx_3ISpQrCs1zWoHVJdw_4Wdy5Jk",
-  authDomain: "libyport-c0c5c.firebaseapp.com",
-  projectId: "libyport-c0c5c",
-  storageBucket: "libyport-c0c5c.firebasestorage.app",
-  messagingSenderId: "417515914521",
-  appId: "1:417515914521:web:38a5100a468d40632af188",
-  measurementId: "G-PXTG1RXTGY"
-};
+// إعدادات مشروع Firebase من الملف المرجعي
+export const firebaseConfig = firebaseConfigData;
 
 // تهيئة تطبيق Firebase
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// تهيئة Firestore مع تفعيل التخزين المحلي الدائم لأقصى سرعة (Persistence)
+// تهيئة Firestore مع تفعيل Long Polling لضمان الموثوقية السحابية المباشرة
 const firestore = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  experimentalForceLongPolling: true,
 });
 
 const auth = getAuth(app);

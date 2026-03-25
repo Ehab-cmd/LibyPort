@@ -235,7 +235,7 @@ const ShippingCalculatorPage: React.FC = () => {
     const grandTotal = productCost.finalPriceLYD + shippingCost.costLYD;
 
     const handleAddItem = (itemClass: { name: string; weight: number }, quantity: number) => {
-        setAddedItems(prev => [...prev, { id: Date.now(), class: itemClass, quantity }]);
+        setAddedItems(prev => [...prev, { id: Date.now() + Math.random(), class: itemClass, quantity }]);
         setIsModalOpen(false);
     };
     

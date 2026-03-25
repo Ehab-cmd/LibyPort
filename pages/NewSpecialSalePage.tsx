@@ -124,7 +124,7 @@ const NewSpecialSalePage: React.FC = () => {
         }
 
         addToCart({ 
-            id: Date.now(), 
+            id: Date.now() + Math.floor(Math.random() * 1000), 
             name, 
             price, 
             quantity: 1, 

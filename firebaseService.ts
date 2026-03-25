@@ -59,15 +59,22 @@ export const handleFirestoreError = (error: unknown, operationType: OperationTyp
 
 export const testConnection = async () => {
     try {
+        console.log("Attempting to connect to Firestore...");
         await getDocFromServer(doc(firestore, 'test', 'connection'));
+        console.log("Firestore connection successful.");
         return true;
     } catch (error) {
-        if (error instanceof Error && error.message.includes('the client is offline')) {
+        console.error("Firestore connection test failed:", error);
+        if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('Could not reach Cloud Firestore backend'))) {
             console.error("Please check your Firebase configuration. The client is offline.");
             return false;
         }
-        // Other errors are fine for a connection test
-        return true;
+        // If it's a permission error or not found, it means we reached the server
+        if (error instanceof Error && (error.message.includes('permission-denied') || error.message.includes('not-found'))) {
+            console.log("Firestore reached (Permission/Not Found). Connection is OK.");
+            return true;
+        }
+        return false;
     }
 };
 
@@ -171,6 +178,8 @@ const INITIAL_DELIVERY_PRICES: Omit<DeliveryPrice, 'id'>[] = [
 
 const seedCollectionIfNeeded = async (collectionName: string, data: any[]) => {
     try {
+        if (!data || data.length === 0) return;
+        
         const colRef = collection(firestore, collectionName);
         const countSnap = await getCountFromServer(colRef);
         const currentCount = countSnap.data().count;
@@ -179,7 +188,16 @@ const seedCollectionIfNeeded = async (collectionName: string, data: any[]) => {
             console.log(`Seeding/Updating collection: ${collectionName}`);
             const batch = writeBatch(firestore);
             data.forEach((item, index) => {
-                const docId = item.title ? `p_${item.cityCode}_${item.regionCode}_${index}` : `init_${collectionName}_${index}`;
+                // Use item.id if it's a number or string, otherwise generate a docId
+                let docId: string;
+                if (item.id && (typeof item.id === 'string' || typeof item.id === 'number')) {
+                    docId = String(item.id);
+                } else if (item.title && item.cityCode) {
+                    docId = `p_${item.cityCode}_${item.regionCode}_${index}`;
+                } else {
+                    docId = `init_${collectionName}_${index}`;
+                }
+                
                 const docRef = doc(colRef, docId);
                 batch.set(docRef, { ...item });
             });
@@ -191,18 +209,23 @@ const seedCollectionIfNeeded = async (collectionName: string, data: any[]) => {
 };
 
 export const seedDatabaseIfNeeded = async () => {
-    // تخطي الفحص إذا تم بالفعل في هذه الجلسة لتقليل استهلاك البيانات والوقت
-    const lastCheck = localStorage.getItem('lp_db_seeded');
-    const now = Date.now();
-    if (lastCheck && now - parseInt(lastCheck) < 1000 * 60 * 60 * 24) { // مرة واحدة كل 24 ساعة
-        return;
-    }
-
     try {
+        // فحص حالة التهيأة مباشرة من السحابة لضمان دقة البيانات
+        const metaRef = doc(firestore, 'settings', 'metadata');
+        const metaSnap = await getDoc(metaRef);
+        
+        if (metaSnap.exists() && metaSnap.data().isSeeded) {
+            return;
+        }
+
+        console.log("Database not seeded. Starting cloud seeding process...");
+
         const collectionsToSeed = [
             { name: 'users', data: initialData.users },
             { name: 'stores', data: initialData.stores },
             { name: 'products', data: initialData.products },
+            { name: 'orders', data: initialData.orders },
+            { name: 'news', data: initialData.news },
             { name: 'bankAccounts', data: initialData.bankAccounts },
             { name: 'deliveryPrices', data: INITIAL_DELIVERY_PRICES },
             { name: 'treasuries', data: [
@@ -211,12 +234,16 @@ export const seedDatabaseIfNeeded = async () => {
             ]}
         ];
 
-        // تشغيل كافة عمليات الفحص بالتوازي لسرعة البرق
+        // Seed collections
         await Promise.all(collectionsToSeed.map(col => seedCollectionIfNeeded(col.name, col.data)));
         
-        localStorage.setItem('lp_db_seeded', now.toString());
+        // Mark as seeded in Firestore
+        await Firestore.setDoc(metaRef, { isSeeded: true, lastSeededAt: new Date().toISOString() }, { merge: true });
+        
+        localStorage.setItem('lp_db_seeded', Date.now().toString());
+        console.log("Database seeding completed.");
     } catch (error: any) {
-        console.warn("Database check bypassed:", error.message);
+        console.warn("Database check bypassed or failed:", error.message);
     }
 };
 

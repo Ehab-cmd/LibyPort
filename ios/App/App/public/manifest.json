@@ -1,0 +1,21 @@
+{
+  "name": "LibyPort - بوابة طرابلس العالمية",
+  "short_name": "LibyPort",
+  "description": "خدمات الشحن والتجارة الإلكترونية العالمية في ليبيا",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f59e0b",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/libyport/192/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://picsum.photos/seed/libyport/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

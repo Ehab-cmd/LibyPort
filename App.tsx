@@ -8,6 +8,7 @@ import PublicLayout from './components/layout/PublicLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import { testConnection } from './firebaseService';
 import { useNotification } from './context/NotificationContext';
+import MobileInstallPrompt from './components/MobileInstallPrompt';
 
 const FirebaseSetupGuide = React.lazy(() => import('./components/FirebaseSetupGuide'));
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
@@ -192,6 +193,7 @@ const App: React.FC = () => {
                     </ReactRouterDOM.Route>
                     <ReactRouterDOM.Route path="*" element={<ReactRouterDOM.Navigate to="/" replace />} />
                 </ReactRouterDOM.Routes>
+                <MobileInstallPrompt />
             </Suspense>
         </ErrorBoundary>
     );

@@ -36,10 +36,94 @@ const USERS: User[] = [
     },
 ];
 
-const PRODUCTS: Product[] = [];
+const PRODUCTS: Product[] = [
+    {
+        id: 1,
+        name: 'ساعة ذكية Ultra 2',
+        description: 'ساعة ذكية متطورة مع شاشة Retina وميزات تتبع الصحة.',
+        price: 1250,
+        category: ProductCategory.Accessories,
+        image: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?q=80&w=1000&auto=format&fit=crop',
+        stock: 15,
+        storeId: 1,
+        sku: 'W-ULTRA-2',
+        isPendingDeletion: false,
+        isInstant: true,
+        isDeleted: false,
+    },
+    {
+        id: 2,
+        name: 'سماعات AirPods Pro',
+        description: 'سماعات لاسلكية مع ميزة إلغاء الضوضاء النشطة.',
+        price: 850,
+        category: ProductCategory.Accessories,
+        image: 'https://images.unsplash.com/photo-1588423770113-969239785831?q=80&w=1000&auto=format&fit=crop',
+        stock: 20,
+        storeId: 1,
+        sku: 'A-PRO-2',
+        isPendingDeletion: false,
+        isInstant: true,
+        isDeleted: false,
+    },
+    {
+        id: 3,
+        name: 'حقيبة ظهر جلدية فاخرة',
+        description: 'حقيبة ظهر مصنوعة من الجلد الطبيعي بتصميم عصري.',
+        price: 450,
+        category: ProductCategory.Bags,
+        image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=1000&auto=format&fit=crop',
+        stock: 10,
+        storeId: 1,
+        sku: 'B-LEATHER-1',
+        isPendingDeletion: false,
+        isInstant: true,
+        isDeleted: false,
+    }
+];
 
-const ORDERS: Order[] = [];
-const NEWS: News[] = [];
+const ORDERS: Order[] = [
+    {
+        id: '1001',
+        customerName: 'أحمد محمد',
+        phone1: '0912345678',
+        city: 'طرابلس',
+        address: 'حي الأندلس',
+        storeId: 1,
+        beneficiaryId: 1,
+        items: [
+            { productId: 1, name: 'ساعة ذكية Ultra 2', price: 1250, quantity: 1 }
+        ],
+        total: 1250,
+        orderType: OrderType.InstantDelivery,
+        productType: ProductCategory.Accessories,
+        paymentMethod: PaymentMethod.Cash,
+        purchaseTrackingStatus: PurchaseTrackingStatus.Purchased,
+        deliveryTrackingStatus: DeliveryTrackingStatus.Arrived,
+        date: new Date().toISOString(),
+        isPendingDeletion: false,
+        isDeleted: false,
+        isDepositPaid: true,
+    }
+];
+
+const NEWS: News[] = [
+    {
+        id: 1,
+        title: 'تخفيضات الربيع الكبرى',
+        content: 'استمتع بخصومات تصل إلى 30% على جميع المنتجات في متجرنا.',
+        date: new Date().toISOString(),
+        authorId: 1,
+        seenBy: [],
+    },
+    {
+        id: 2,
+        title: 'تحديث جديد لنظام التتبع',
+        content: 'يمكنكم الآن تتبع شحناتكم بدقة أعلى عبر تطبيقنا.',
+        date: new Date().toISOString(),
+        authorId: 1,
+        seenBy: [],
+    }
+];
 const NOTIFICATIONS: AppNotification[] = [];
 const CHAT_MESSAGES: ChatMessage[] = [];
 const FINANCIAL_TRANSACTIONS: FinancialTransaction[] = [];

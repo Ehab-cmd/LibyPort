@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "417515914521",
+    "project_id": "libyport-c0c5c",
+    "storage_bucket": "libyport-c0c5c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:417515914521:android:959f7ccb3f6d18ca2af188",
+        "android_client_info": {
+          "package_name": "com.libyport.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "417515914521-ri19stloa825odp3oono0gl5qugdnuq3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_IAGlQLcUvIqb6C3o6LSG6Vi-3Qx-DXs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "417515914521-ri19stloa825odp3oono0gl5qugdnuq3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "417515914521-02d2fvf1thv4elroo7atnbikl7uqqfad.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.libyport.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

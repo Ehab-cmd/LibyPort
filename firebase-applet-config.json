@@ -1,9 +1,9 @@
 {
   "projectId": "libyport-c0c5c",
   "appId": "1:417515914521:web:fb51f90f4f2d58372af188",
-  "apiKey": "AIzaSyAJWvIkUZ1wAywZ4l5wE3a4WwrUOiRRorM",
+  "apiKey": "AIzaSyB_IAGlQLcUvIqb6C3o6LSG6Vi-3Qx-DXs",
   "authDomain": "libyport-c0c5c.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-07241016-9f8a-4f9c-89dc-e94febe6d9a0",
+  "firestoreDatabaseId": "(default)",
   "storageBucket": "libyport-c0c5c.firebasestorage.app",
   "messagingSenderId": "417515914521",
   "measurementId": ""
